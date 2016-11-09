@@ -149,6 +149,9 @@ class Crawler {
 
   update() {
     this.ds.write('./data/db.json', this.ds.wash(this.fetchedData));
+
+    // update the seed
+    helper.write('./seed', this.ds.getTop(100, 'stats.dayInc').filter(v => Math.random() < 0.03).map(v => v.name).join(',').replace(/"/g, ''));
   }
 
   fetch(url, done) {
