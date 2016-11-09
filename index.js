@@ -14,6 +14,8 @@ const fs = require('fs');
 const https = require('https');
 const process = require('process');
 const ds = require('./lib/ds');
+const helper = require('./lib/helper');
+const args = helper.parseArgs(process.argv.slice(2));
 
 class Crawler {
   constructor() {
@@ -26,6 +28,12 @@ class Crawler {
     this._fetchedData = {};
     this.newCount = 0;
     this.fetchCount = 0;
+    this.backup();
+    this.update = this.debounce(this.update, 1000);
+  }
+
+  backup() {
+    this.ds.write('./data/db.json.bak', this.ds.wash(this.fetchedData));
   }
 
   seed() {
@@ -77,9 +85,8 @@ class Crawler {
     const d = new Date();
     d.setTime(d.getTime() - (d.getTimezoneOffset() * 60 * 1000));
     const today = d.toISOString().split('T')[0];
-    if (this._fetchedData[name] || (this.fetchedData[name] && this.fetchedData[name].stats.downloads[today])) {
+    if (this._fetchedData[name]) {
       // if already tried fetched once, no more trials
-      // if already fetched today's stat, mark as no fetching
       fetch = false;
     }
 
@@ -90,6 +97,7 @@ class Crawler {
 
     // for pkg that fetched successful, but no data for today
     // no fetch if last fetchTime is pretty close: < 3 hours
+    // so can update today's stat if > 3 hours
     if (this.fetchedData[name] && (+d - this.fetchedData[name].fetchTime < 3 * 3600 * 1000)) {
       fetch = false;
     }
@@ -113,7 +121,7 @@ class Crawler {
 
     this.fetch('https://api.npmjs.org/downloads/range/last-week/' + name, (err, data) => {
       if (err) {
-        this._fetchedData[name].fail = true;
+        this.fetchedData[name].fail = true;
         return this.log(err);
       }
 
@@ -131,12 +139,16 @@ class Crawler {
           downloads[d.day] = d.downloads;
         });
       } catch (err) {
-        this.fetchedData[name].fail = true;
         this.log(name, err);
+        this.fetchedData[name].fail = true;
       }
 
-      this.ds.write('./data/db.json', this.ds.wash(this.fetchedData));
+      this.update();
     });
+  }
+
+  update() {
+    this.ds.write('./data/db.json', this.ds.wash(this.fetchedData));
   }
 
   fetch(url, done) {
@@ -153,12 +165,42 @@ class Crawler {
       done(e);
     });
   }
+
+  debounce(func, wait, immediate) {
+    let timeout;
+    return function() {
+      let context = this, args = arguments;
+      let later = function() {
+        timeout = null;
+        if (!immediate) func.apply(context, args);
+      };
+      let callNow = immediate && !timeout;
+      clearTimeout(timeout);
+      timeout = setTimeout(later, wait);
+      if (callNow) func.apply(context, args);
+    };
+  }
 }
 
 const crawler = new Crawler();
-crawler.seed();
-
+if (args.mode === 'update') {
+  console.log(Object.keys(crawler.fetchedData).length);
+  Object.keys(crawler.fetchedData).forEach((pkg, i) => {
+    if (!crawler.fetchedData.hasOwnProperty(pkg)) return;
+    crawler.stat(pkg);
+  });
+} else {
+  crawler.seed();
+}
 process.on('exit', function() {
   console.log('new packages fetched: ' + crawler.newCount, 'total packages fetched: ' + crawler.fetchCount);
+  process.exit();
+});
+process.on('SIGINT', function() {
+  console.log('new packages fetched: ' + crawler.newCount, 'total packages fetched: ' + crawler.fetchCount);
+});
+
+process.on('uncaughtException', function() {
+  console.log(arguments);
   process.exit();
 });
