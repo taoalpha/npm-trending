@@ -87,6 +87,7 @@ class Crawler {
       if (err) {
         return this.log(err);
       }
+      this.fetchCount++;
       this.fetchedInfo[name] = data;
       this.update('info');
     });
@@ -212,7 +213,7 @@ if (args.mode === 'update') {
 } else if (args.mode === 'info') {
   Object.keys(crawler.fetchedData).forEach((pkg, i) => {
     if (!crawler.fetchedData.hasOwnProperty(pkg)) return;
-    if (i > 2000) return;
+    if (i > args.break) return;
     crawler.info(pkg);
   });
 } else {
