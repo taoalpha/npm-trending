@@ -28,6 +28,7 @@ class Crawler {
     this._fetchedData = {};
     this.newCount = 0;
     this.fetchCount = 0;
+    this.fetchedInfo = helper.read('./data/info.json');
     this.backup();
     this.update = this.debounce(this.update, 1000);
   }
@@ -79,6 +80,18 @@ class Crawler {
     });
   }
 
+  info(name) {
+    // fetching
+    if (this.fetchedInfo[name]) return;
+    this.fetch('https://registry.npmjs.org/' + name + '/*', (err, data) => {
+      if (err) {
+        return this.log(err);
+      }
+      this.fetchedInfo[name] = data;
+      this.update('info');
+    });
+  }
+
   stat(name) {
     // no repeat fetching
     let fetch = true;
@@ -91,7 +104,7 @@ class Crawler {
     }
 
     // for failed pkg, no retry in 7 days
-    if (this.fetchedData[name] && this.fetchedData[name].fail && (+d - this.fetchedData[name].fetchTime < 7 * 24 * 3600 * 1000)) {
+    if (this.fetchedData[name] && this.fetchedData[name].fail && (+d - this.fetchedData[name].fetchTime < 3 * 24 * 3600 * 1000)) {
       fetch = false;
     }
 
@@ -147,7 +160,11 @@ class Crawler {
     });
   }
 
-  update() {
+  update(mode) {
+    if (mode == 'info') {
+      helper.write('./data/info.json', this.fetchedInfo);
+      return;
+    }
     this.ds.write('./data/db.json', this.ds.wash(this.fetchedData));
 
     // update the seed
@@ -191,6 +208,12 @@ if (args.mode === 'update') {
   Object.keys(crawler.fetchedData).forEach((pkg, i) => {
     if (!crawler.fetchedData.hasOwnProperty(pkg)) return;
     crawler.stat(pkg);
+  });
+} else if (args.mode === 'info') {
+  Object.keys(crawler.fetchedData).forEach((pkg, i) => {
+    if (!crawler.fetchedData.hasOwnProperty(pkg)) return;
+    if (i > 2000) return;
+    crawler.info(pkg);
   });
 } else {
   crawler.seed();
