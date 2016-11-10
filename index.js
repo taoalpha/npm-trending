@@ -88,8 +88,10 @@ class Crawler {
         return this.log(err);
       }
       this.fetchCount++;
-      this.fetchedInfo[name] = data;
-      this.update('info');
+      try {
+        this.fetchedInfo[name] = JSON.parse(data);
+        this.update('info');
+      }
     });
   }
 
