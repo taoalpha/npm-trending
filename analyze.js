@@ -11,13 +11,13 @@ const helper = require('./lib/helper');
 const info = helper.read('./data/info.json');
 
 let dat = ds.read('./data/db.json');
-console.log(ds.getTop(10, 'stats.dayInc').map(v => {return {name: v.name, description: JSON.parse(info[v.name]).description, dayInc: v.stats.dayInc}}));
-console.log(ds.getTop(10, 'stats.dayChange').map(v => {return {name: v.name, description: JSON.parse(info[v.name]).description, dayChange: v.stats.dayChange}}));
-console.log(ds.getTop(10, 'stats.nowInc').map(v => {return {name: v.name, description: JSON.parse(info[v.name]).description, nowInc: v.stats.nowInc}}));
-console.log(ds.getTop(10, 'stats.nowChange').map(v => {return {name: v.name, description: JSON.parse(info[v.name]).description, nowChange: v.stats.nowChange}}));
+console.log(ds.getTop(10, 'stats.dayInc').map(v => {return {name: v.name, description: info[v.name].description, dayInc: v.stats.dayInc}}));
+console.log(ds.getTop(10, 'stats.dayChange').map(v => {return {name: v.name, description: info[v.name].description, dayChange: v.stats.dayChange}}));
+console.log(ds.getTop(10, 'stats.nowInc').map(v => {return {name: v.name, description: info[v.name].description, nowInc: v.stats.nowInc}}));
+console.log(ds.getTop(10, 'stats.nowChange').map(v => {return {name: v.name, description: info[v.name].description, nowChange: v.stats.nowChange}}));
 
-console.log(ds.getBottom(10, 'fetchTime').map(v => {return {name: v.name, description: JSON.parse(info[v.name]).description, fetchTime: v.fetchTime, fetchTimePretty: v.fetchTimePretty}}));
-console.log(ds.getBottom(10, 'createTime').map(v => {return {name: v.name, description: JSON.parse(info[v.name]).description, createTime: v.createTime, createTimePretty: v.createTimePretty}}));
+console.log(ds.getBottom(10, 'fetchTime').map(v => {return {name: v.name, description: info[v.name].description, fetchTime: v.fetchTime, fetchTimePretty: v.fetchTimePretty}}));
+console.log(ds.getBottom(10, 'createTime').map(v => {return {name: v.name, description: info[v.name].description, createTime: v.createTime, createTimePretty: v.createTimePretty}}));
 
 console.log(ds.getTop(10, 'stats.dayInc').map(v => v.name).join(','));
 console.log(ds.getTop(10, 'stats.dayChange').map(v => v.name).join(','));
