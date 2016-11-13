@@ -29,9 +29,10 @@ class Crawler {
     this.newCount = 0;
     this.fetchCount = 0;
     this.failCount = 0;
+    this.writeCount = 0;
     this.fetchedInfo = helper.read('./data/info.json');
     this.backup();
-    this.update = this.debounce(this.update, 1000);
+    this.update = helper.debounce(this.update, 2000);
   }
 
   backup() {
@@ -178,15 +179,15 @@ class Crawler {
       if (this.fetchedData[name].fail === "TypeError" && (+d - this.fetchedData[name].fetchTime < 6 * 24 * 3600 * 1000)) {
         fetch = false;
 
-      // no retry for 10 mins if its syntax error
-      } else if (this.fetchedData[name].fail === "SyntaxError" && (+d - this.fetchedData[name].fetchTime < 10 * 60 * 1000)) {
+      // retry after 5 mins if its other error
+      } else if (+d - this.fetchedData[name].fetchTime < 5 * 60 * 1000) {
         fetch = false
       }
     }
 
-    // no fetch if last fetchTime is pretty close: < 3 hours
+    // no fetch if last successful fetch's fetchTime is pretty close: < 3 hours
     // so can update today's stat if > 3 hours
-    if (this.fetchedData[name] && (+d - this.fetchedData[name].fetchTime < 3 * 3600 * 1000)) {
+    if (this.fetchedData[name] && !this.fetchedData[name].fail && (+d - this.fetchedData[name].fetchTime < 3 * 3600 * 1000)) {
       fetch = false;
     }
 
@@ -241,6 +242,7 @@ class Crawler {
   }
 
   update(mode) {
+    this.writeCount++;
     if (mode == 'info') {
       helper.write('./data/info.json', this.fetchedInfo);
       return;
@@ -266,25 +268,10 @@ class Crawler {
     });
 
     req.on('socket', function (socket) {
-      socket.setTimeout(5000, function() {
+      socket.setTimeout(2000, function() {
         req.end();
       });
     });
-  }
-
-  debounce(func, wait, immediate) {
-    let timeout;
-    return function() {
-      let context = this, args = arguments;
-      let later = function() {
-        timeout = null;
-        if (!immediate) func.apply(context, args);
-      };
-      let callNow = immediate && !timeout;
-      clearTimeout(timeout);
-      timeout = setTimeout(later, wait);
-      if (callNow) func.apply(context, args);
-    };
   }
 }
 
@@ -317,11 +304,10 @@ if (args.mode === 'update') {
   crawler.seed();
 }
 process.on('exit', function() {
-  console.log('new packages fetched: ' + crawler.newCount, 'total packages fetched: ' + crawler.fetchCount, 'total fail fetches: ' + crawler.failCount);
+  console.log('new packages fetched: ' + crawler.newCount, 'total packages fetched: ' + crawler.fetchCount, 'total fail fetches: ' + crawler.failCount, 'total write count: ' + crawler.writeCount);
   process.exit();
 });
 process.on('SIGINT', function() {
-  console.log('new packages fetched: ' + crawler.newCount, 'total packages fetched: ' + crawler.fetchCount, 'total fail fetches: ' + crawler.failCount);
   process.exit();
 });
 
