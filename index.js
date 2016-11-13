@@ -188,7 +188,7 @@ class Crawler {
     // no fetch if last successful fetch's fetchTime is pretty close: < 3 hours
     // so can update today's stat if > 3 hours
     if (this.fetchedData[name] && !this.fetchedData[name].fail && (+d - this.fetchedData[name].fetchTime < 3 * 3600 * 1000)) {
-      fetch = false;
+     fetch = false;
     }
 
     // force fetching

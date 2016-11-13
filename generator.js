@@ -81,7 +81,6 @@ data.nowPkgs = ds.getTop(200, 'stats.nowChange').map(v => {
   // only show pkg with at least 50 downloads yesterday and nowChange > 10%, nowInc > 50
 }).filter(v => v.lastday > 50 && v.nowInc > 50 && parseInt(v.nowChange) > 10);
 
-
 let result = template(data);
 
 
