@@ -58,6 +58,6 @@ data.today = d.toDateString();
 let result = template(data);
 
 
-helper.write(`./output/${today}.html`, result);
+helper.write(`./dist/${today}.html`, result);
 
 console.log("Finished");
