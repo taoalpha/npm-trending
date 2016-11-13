@@ -28,6 +28,7 @@ class Crawler {
     this._fetchedData = {};
     this.newCount = 0;
     this.fetchCount = 0;
+    this.failCount = 0;
     this.fetchedInfo = helper.read('./data/info.json');
     this.backup();
     this.update = this.debounce(this.update, 1000);
@@ -80,22 +81,87 @@ class Crawler {
     });
   }
 
-  info(name) {
+  info(name, force) {
+    // no repeat fetching
+    let fetch = true;
+    const d = new Date();
+    d.setTime(d.getTime() - (d.getTimezoneOffset() * 60 * 1000));
+    const today = d.toISOString().split('T')[0];
+
+    // for failed pkgs
+    if (this.fetchedInfo[name] && this.fetchedInfo[name].fail) {
+      // no retry for 7 days if its TypeError (no downloads data)
+      if (this.fetchedInfo[name].fail === "TypeError" && (+d - this.fetchedInfo[name].fetchTime < 6 * 24 * 3600 * 1000)) {
+        fetch = false;
+
+      // no retry for 10 mins if its syntax error
+      } else if (this.fetchedInfo[name].fail === "SyntaxError" && (+d - this.fetchedInfo[name].fetchTime < 10 * 60 * 1000)) {
+        fetch = false
+      }
+    }
+
+    // if no failure 
+    // no fetch if current time - last fetch time < expected next update time
+    if (this.fetchedInfo[name] && !this.fetchedInfo[name].fail && (+d - this.fetchedInfo[name].fetchTime < this.fetchedInfo[name].nextUpdate)) {
+      fetch = false;
+    }
+
+    // force fetching
+    if (force) fetch = true;
+
+    if (!fetch) return;
+
+    if (!this.fetchedInfo[name]) {
+      this.newCount++;
+    }
+
+    this.fetchedInfo[name] = this.fetchedInfo[name] || {
+      fetchTime: +d,
+      createTime: +d,
+      nextUpdate: 7 * 24 * 3600 * 1000
+    };
+
+    // update fetchTime
+    this.fetchedInfo[name].fetchTime = +d;
+
+ 
     // fetching
-    if (this.fetchedInfo[name]) return;
     this.fetch('https://registry.npmjs.org/' + name + '/*', (err, data) => {
       if (err) {
-        return this.log(err);
+        this.fetchedInfo[name].fail = true;
+        this.failCount++;
+        return this.log(name, err);
       }
+
       this.fetchCount++;
+
       try {
-        this.fetchedInfo[name] = JSON.parse(data);
-        this.update('info');
+        // mark as success by default
+        this.fetchedInfo[name].fail = false;
+        data = JSON.parse(data);
+
+        // update if detect a version change
+        // by default update every week
+        // if no updates, punish it, otherwise reward it
+        if (data.version !== this.fetchedInfo.version) {
+          Object.assign(this.fetchedInfo[name], data);
+          // min nextUpdate time: a day
+          this.fetchedInfo[name].nextUpdate = Math.max(this.fetchedInfo[name].nextUpdate / 2, 24 * 3600 * 1000);
+        } else {
+          // max nextUpdate time: a year
+          this.fetchedInfo[name].nextUpdate = Math.min(this.fetchedInfo[name].nextUpdate * 2, 52 * 7 * 24 * 3600 * 1000);
+        }
+      } catch (err) {
+        this.failCount++;
+        this.log(name, err.name, data);
+        this.fetchedInfo[name].fail = err.name || true; 
       }
+
+      this.update("info");
     });
   }
 
-  stat(name) {
+  stat(name, force) {
     // no repeat fetching
     let fetch = true;
     const d = new Date();
@@ -106,17 +172,26 @@ class Crawler {
       fetch = false;
     }
 
-    // for failed pkg, no retry in 7 days
-    if (this.fetchedData[name] && this.fetchedData[name].fail && (+d - this.fetchedData[name].fetchTime < 3 * 24 * 3600 * 1000)) {
-      fetch = false;
+    // for failed pkgs
+    if (this.fetchedData[name] && this.fetchedData[name].fail) {
+      // no retry for 7 days if its TypeError (no downloads data)
+      if (this.fetchedData[name].fail === "TypeError" && (+d - this.fetchedData[name].fetchTime < 6 * 24 * 3600 * 1000)) {
+        fetch = false;
+
+      // no retry for 10 mins if its syntax error
+      } else if (this.fetchedData[name].fail === "SyntaxError" && (+d - this.fetchedData[name].fetchTime < 10 * 60 * 1000)) {
+        fetch = false
+      }
     }
 
-    // for pkg that fetched successful, but no data for today
     // no fetch if last fetchTime is pretty close: < 3 hours
     // so can update today's stat if > 3 hours
     if (this.fetchedData[name] && (+d - this.fetchedData[name].fetchTime < 3 * 3600 * 1000)) {
       fetch = false;
     }
+
+    // force fetching
+    if (force) fetch = true;
 
     if (!fetch) return;
 
@@ -137,8 +212,9 @@ class Crawler {
 
     this.fetch('https://api.npmjs.org/downloads/range/last-week/' + name, (err, data) => {
       if (err) {
+        this.failCount++;
         this.fetchedData[name].fail = true;
-        return this.log(err);
+        return this.log(name, err);
       }
 
       this.fetchCount++;
@@ -155,8 +231,9 @@ class Crawler {
           downloads[d.day] = d.downloads;
         });
       } catch (err) {
-        this.log(name, err);
-        this.fetchedData[name].fail = true;
+        this.failCount++;
+        this.log(name, err.name, data);
+        this.fetchedData[name].fail = err.name || true; 
       }
 
       this.update();
@@ -175,7 +252,7 @@ class Crawler {
   }
 
   fetch(url, done) {
-    https.get(url, res => {
+    let req = https.get(url, res => {
       res.setEncoding('utf8');
       let body = '';
       res.on('data', chunk => {
@@ -186,6 +263,12 @@ class Crawler {
       });
     }).on('error', e => {
       done(e);
+    });
+
+    req.on('socket', function (socket) {
+      socket.setTimeout(5000, function() {
+        req.end();
+      });
     });
   }
 
@@ -206,27 +289,40 @@ class Crawler {
 }
 
 const crawler = new Crawler();
+console.log("Total Packages: " + Object.keys(crawler.fetchedData).length);
 if (args.mode === 'update') {
-  console.log(Object.keys(crawler.fetchedData).length);
-  Object.keys(crawler.fetchedData).forEach((pkg, i) => {
-    if (!crawler.fetchedData.hasOwnProperty(pkg)) return;
-    crawler.stat(pkg);
-  });
+  if (args.name) {
+      crawler.stat(args.name, true);
+  } else {
+    Object.keys(crawler.fetchedData).forEach((pkg, i) => {
+      if (!crawler.fetchedData.hasOwnProperty(pkg)) return;
+      if (args.break && i > args.break) return;
+      if (args.skip && i < args.skip) return;
+
+      crawler.stat(pkg);
+    });
+  }
 } else if (args.mode === 'info') {
-  Object.keys(crawler.fetchedData).forEach((pkg, i) => {
-    if (!crawler.fetchedData.hasOwnProperty(pkg)) return;
-    if (i > args.break) return;
-    crawler.info(pkg);
-  });
+  if (args.name) {
+      crawler.info(args.name, true);
+  } else {
+    Object.keys(crawler.fetchedData).forEach((pkg, i) => {
+      if (!crawler.fetchedData.hasOwnProperty(pkg)) return;
+      if (args.break && i > args.break) return;
+      if (args.skip && i < args.skip) return;
+      crawler.info(pkg);
+    });
+  }
 } else {
   crawler.seed();
 }
 process.on('exit', function() {
-  console.log('new packages fetched: ' + crawler.newCount, 'total packages fetched: ' + crawler.fetchCount);
+  console.log('new packages fetched: ' + crawler.newCount, 'total packages fetched: ' + crawler.fetchCount, 'total fail fetches: ' + crawler.failCount);
   process.exit();
 });
 process.on('SIGINT', function() {
-  console.log('new packages fetched: ' + crawler.newCount, 'total packages fetched: ' + crawler.fetchCount);
+  console.log('new packages fetched: ' + crawler.newCount, 'total packages fetched: ' + crawler.fetchCount, 'total fail fetches: ' + crawler.failCount);
+  process.exit();
 });
 
 process.on('uncaughtException', function() {
