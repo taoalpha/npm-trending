@@ -9,8 +9,8 @@
 const ds = require('./lib/ds');
 const helper = require('./lib/helper');
 const info = helper.read('./data/info.json');
-
 let dat = ds.read('./data/db.json');
+/*
 console.log("======== Day Increase Number Top 10 ==========");
 console.log(ds.getTop(10, 'stats.dayInc').map(v => {return {name: v.name, description: info[v.name].description, dayInc: v.stats.dayInc}}));
 console.log("======== Day Increase Percentage Top 10 ==========");
@@ -26,13 +26,12 @@ console.log(ds.getBottom(10, 'fetchTime').map(v => {return {name: v.name, descri
 console.log("======== Create Time Bottom Top 10 ==========");
 console.log(ds.getBottom(10, 'createTime').map(v => {return {name: v.name, description: info[v.name].description, createTime: v.createTime, createTimePretty: v.createTimePretty}}));
 
-console.log(ds.getTop(10, 'stats.dayInc').map(v => v.name).join(','));
-console.log(ds.getTop(10, 'stats.dayChange').map(v => v.name).join(','));
-console.log(ds.getTop(10, 'stats.nowInc').map(v => v.name).join(','));
-console.log(ds.getTop(10, 'stats.nowChange').map(v => v.name).join(','));
+*/
+// console.log(ds.getTop(10, 'stats.dayInc').map(v => v.name).join(','));
+console.log(ds.getTop(50, 'stats.dayChange').map(v => v.name).join(','));
+// console.log(ds.getTop(10, 'stats.nowInc').map(v => v.name).join(','));
+// console.log(ds.getTop(10, 'stats.nowChange').map(v => v.name).join(','));
 const d = new Date();
 d.setTime(d.getTime() - (d.getTimezoneOffset() * 60 * 1000));
 
 // console.log(ds.getTop(1, 'stats.dayChange'));
-//
-console.log(Object.keys(dat).filter(key => dat[key].fail === "SyntaxError"));

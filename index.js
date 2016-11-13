@@ -20,7 +20,7 @@ const args = helper.parseArgs(process.argv.slice(2));
 class Crawler {
   constructor() {
     this._PARSE_REG = /\/package\/([\w-]+)/g;
-    this._EXPAND_LAYER = 1;
+    this._EXPAND_LAYER = 2;
     this.pkgs = new Set();
     this._fetched = {};
     this.ds = ds;
@@ -32,7 +32,7 @@ class Crawler {
     this.writeCount = 0;
     this.fetchedInfo = helper.read('./data/info.json');
     this.backup();
-    this.update = helper.debounce(this.update, 2000);
+    this.update = helper.debounce(this.update, 5000);
   }
 
   backup() {
@@ -299,6 +299,10 @@ if (args.mode === 'update') {
       if (args.skip && i < args.skip) return;
       crawler.info(pkg);
     });
+  }
+} else if (args.mode === "get") {
+  if (args.name) {
+    console.log(crawler.fetchedData[args.name], crawler.fetchedInfo[args.name]);
   }
 } else {
   crawler.seed();

@@ -48,7 +48,7 @@ data.dayIncPkgs = ds.getTop(50, 'stats.dayInc').map(v => {
   };
 }).filter(v => v.lastday > 100 && v.dayInc > 100);
 
-data.dayChangePkgs = ds.getTop(50, 'stats.dayChange').map(v => {
+data.dayChangePkgs = ds.getTop(100, 'stats.dayChange').map(v => {
   let pkgInfo = info[v.name];
   return {
     name: v.name,
@@ -60,7 +60,7 @@ data.dayChangePkgs = ds.getTop(50, 'stats.dayChange').map(v => {
     author: (pkgInfo._npmUser && pkgInfo._npmUser.name) || (pkgInfo.author && pkgInfo.author.name) || "unkown",
     status: v.stats.dayChange > 0 ? "arrow-up" : "arrow-down"
   };
-}).filter(v => v.lastday > 50);
+}).filter(v => v.lastday > 30);
 
 data.nowPkgs = ds.getTop(200, 'stats.nowChange').map(v => {
   let pkgInfo = info[v.name];
