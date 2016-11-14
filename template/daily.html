@@ -15,7 +15,6 @@ html, body {
   height: 100%;
   background-color: #f0f0f0;
   font-family: 'Open Sans', sans-serif;
-  -webkit-font-smoothing: antialiased;
 }
 a{
   text-decoration: none;
@@ -34,6 +33,10 @@ header {
   color: white;
   position: absolute;
   background-color: #C12127;
+}
+header span{
+  font-size: 15px;
+  font-weight: initial;
 }
 .catHeader {
   width: 33.33%;
@@ -85,13 +88,19 @@ header {
 .fa-arrow-up {
   color: green;
 }
+.fa-arrow-down {
+  color: red;
+}
     </style>
   </head>
   <body>
-    <header>{{title}} @ {{reportDay}}</header>
+    <header>
+      {{title}} @ {{reportDay}}
+      <span>(total: {{totalPkgs}})</span>
+    </header>
     <div id="content">
       <article>
-        <div class="catHeader" style="background-color: #AC1287;">Top Increase Number @ {{reportDay}}</div>
+        <div class="catHeader" style="background-color: #33a1d6;">Top Increase Number @ {{reportDay}}</div>
         {{#dayIncPkgs}}
         <div class="pkgCard">
           <h3 class="pkgTitle">
@@ -108,14 +117,14 @@ header {
               <a href="{{homepage}}"><i class="fa fa-link"> homepage</i></a>
             </span>
             {{/if}}
-            <span><i class="fa fa-download"> {{lastday}} ({{../yesterday}})</i></span>
+            <span><i class="fa fa-download"> {{lastday}} ({{../reportDayS}})</i></span>
           </div>
           <div class="share"></div>
         </div>
         {{/dayIncPkgs}}
       </article>
       <article>
-        <div class="catHeader" style="background-color: #DCC287;">Top Increase Percentage @ {{reportDay}}</div>
+        <div class="catHeader" style="background-color: #2aad5e;">Top Increase Percentage @ {{reportDay}}</div>
         {{#dayChangePkgs}}
         <div class="pkgCard">
           <h3 class="pkgTitle">
@@ -132,19 +141,19 @@ header {
               <a href="{{homepage}}"><i class="fa fa-link"> homepage</i></a>
             </span>
             {{/if}}
-            <span><i class="fa fa-download"> {{lastday}} ({{../yesterday}})</i></span>
+            <span><i class="fa fa-download"> {{lastday}} ({{../reportDayS}})</i></span>
           </div>
           <div class="share"></div>
         </div>
         {{/dayChangePkgs}}
       </article>
       <article>
-        <div class="catHeader" style="background-color: #DC12D7;">Current Hot @ {{today}}</div>
+        <div class="catHeader" style="background-color: #dc1282;">Top Downloads @ {{reportDay}}</div>
         {{#nowPkgs}}
         <div class="pkgCard">
           <h3 class="pkgTitle">
             <a href="https://www.npmjs.com/package/{{name}}">{{name}}</a>
-            <span class="fa fa-{{status}}"> {{nowChange}} ({{nowInc}})</span>
+            <span class="fa fa-{{status}}"> {{dayChange}} ({{dayInc}})</span>
           </h3>
           <div class="pkgDesc">{{description}}</div>
           <div class="pkgInfo">
@@ -156,7 +165,7 @@ header {
               <a href="{{homepage}}"><i class="fa fa-link"> homepage</i></a>
             </span>
             {{/if}}
-            <span><i class="fa fa-download"> {{lastday}} ({{../reportDay}})</i></span>
+            <span><i class="fa fa-download"> {{lastday}} ({{../reportDayS}})</i></span>
           </div>
           <div class="share"></div>
         </div>

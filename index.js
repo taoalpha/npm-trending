@@ -24,13 +24,13 @@ class Crawler {
     this.pkgs = new Set();
     this._fetched = {};
     this.ds = ds;
-    this.fetchedData = this.ds.read('./data/db.json');
+    this.fetchedData = args.mode !== "info" && this.ds.read('./data/db.json');
     this._fetchedData = {};
     this.newCount = 0;
     this.fetchCount = 0;
     this.failCount = 0;
     this.writeCount = 0;
-    this.fetchedInfo = helper.read('./data/info.json');
+    this.fetchedInfo = args.mode !== "update" && helper.read('./data/info.json');
     this.backup();
     this.update = helper.debounce(this.update, 5000);
   }
@@ -163,11 +163,15 @@ class Crawler {
   }
 
   stat(name, force) {
-    // no repeat fetching
+    // based on npm download api: https://github.com/npm/download-counts
+    // new day's data only available after UTC 12:00
+    // so all pkg only needs to be fetched again once after a day
     let fetch = true;
     const d = new Date();
     d.setTime(d.getTime() - (d.getTimezoneOffset() * 60 * 1000));
     const today = d.toISOString().split('T')[0];
+
+    // no repeat fetching
     if (this._fetchedData[name]) {
       // if already tried fetched once, no more trials
       fetch = false;
@@ -185,10 +189,16 @@ class Crawler {
       }
     }
 
-    // no fetch if last successful fetch's fetchTime is pretty close: < 3 hours
-    // so can update today's stat if > 3 hours
-    if (this.fetchedData[name] && !this.fetchedData[name].fail && (+d - this.fetchedData[name].fetchTime < 3 * 3600 * 1000)) {
+    // no fetch if last successful fetch's fetchTime is pretty close: < 12 hours
+    // so can update today's stat if > 12 hours
+    // if (this.fetchedData[name] && !this.fetchedData[name].fail && (+d - this.fetchedData[name].fetchTime < 24 * 3600 * 1000)) {
+    if (this.fetchedData[name] && !this.fetchedData[name].fail && (+d - this.fetchedData[name].fetchTime < 20 * 60 * 1000)) {
      fetch = false;
+    }
+
+    // already fetched, fetch a pkg once day
+    if (this.fetchedData[name] && this.fetchedData[name].stats.downloads[today]) {
+      fetch = false;
     }
 
     // force fetching
@@ -304,6 +314,8 @@ if (args.mode === 'update') {
   if (args.name) {
     console.log(crawler.fetchedData[args.name], crawler.fetchedInfo[args.name]);
   }
+} else if (args.mode === "wash") {
+  crawler.update();
 } else {
   crawler.seed();
 }
