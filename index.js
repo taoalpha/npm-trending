@@ -24,13 +24,13 @@ class Crawler {
     this.pkgs = new Set();
     this._fetched = {};
     this.ds = ds;
-    this.fetchedData = args.mode !== "info" && this.ds.read('./data/db.json');
     this._fetchedData = {};
     this.newCount = 0;
     this.fetchCount = 0;
     this.failCount = 0;
     this.writeCount = 0;
-    this.fetchedInfo = args.mode !== "update" && helper.read('./data/info.json');
+    this.fetchedInfo = helper.read('./data/info.json');
+    this.fetchedData = this.ds.read('./data/db.json');
     this.backup();
     this.update = helper.debounce(this.update, 5000);
   }
@@ -191,8 +191,7 @@ class Crawler {
 
     // no fetch if last successful fetch's fetchTime is pretty close: < 12 hours
     // so can update today's stat if > 12 hours
-    // if (this.fetchedData[name] && !this.fetchedData[name].fail && (+d - this.fetchedData[name].fetchTime < 24 * 3600 * 1000)) {
-    if (this.fetchedData[name] && !this.fetchedData[name].fail && (+d - this.fetchedData[name].fetchTime < 20 * 60 * 1000)) {
+    if (this.fetchedData[name] && !this.fetchedData[name].fail && (+d - this.fetchedData[name].fetchTime < 24 * 3600 * 1000)) {
      fetch = false;
     }
 
