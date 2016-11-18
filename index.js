@@ -14,13 +14,14 @@ const fs = require('fs');
 const https = require('https');
 const process = require('process');
 const ds = require('./lib/ds');
+const ProgressBar = require("progress");
 const helper = require('./lib/helper');
 const args = helper.parseArgs(process.argv.slice(2));
 
 class Crawler {
   constructor() {
     this._PARSE_REG = /\/package\/([\w-]+)/g;
-    this._EXPAND_LAYER = 2;
+    this._EXPAND_LAYER = 4;
     this.pkgs = new Set();
     this._fetched = {};
     this.ds = ds;
@@ -37,6 +38,7 @@ class Crawler {
 
   backup() {
     this.ds.write('./data/db.json.bak', this.ds.wash(this.fetchedData));
+    this.ds.write('./data/info.json.bak', this.ds.wash(this.fetchedInfo));
   }
 
   seed() {
@@ -48,9 +50,6 @@ class Crawler {
   }
 
   log(msg) {
-    if (msg !== 'fetched') {
-      console.log.apply(console, arguments);
-    }
     return msg;
   }
 
@@ -77,12 +76,15 @@ class Crawler {
       while ((match = this._PARSE_REG.exec(data))) {
         this.pkgs.add(match[1]);
         this.expand(match[1], layer + 1);
+
+        // crawl the stats and info
         this.stat(match[1]);
+        this.info(match[1]);
       }
     });
   }
 
-  info(name, force) {
+  info(name, force, callback) {
     // no repeat fetching
     let fetch = true;
     const d = new Date();
@@ -110,7 +112,10 @@ class Crawler {
     // force fetching
     if (force) fetch = true;
 
-    if (!fetch) return;
+    if (!fetch) {
+      if (callback) callback();
+      return;
+    };
 
     if (!this.fetchedInfo[name]) {
       this.newCount++;
@@ -158,11 +163,13 @@ class Crawler {
         this.fetchedInfo[name].fail = err.name || true; 
       }
 
-      this.update("info");
+      this.update();
+      if (callback) callback();
     });
+    return;
   }
 
-  stat(name, force) {
+  stat(name, force, callback) {
     // based on npm download api: https://github.com/npm/download-counts
     // new day's data only available after UTC 12:00
     // so all pkg only needs to be fetched again once after a day
@@ -191,7 +198,7 @@ class Crawler {
 
     // no fetch if last successful fetch's fetchTime is pretty close: < 12 hours
     // so can update today's stat if > 12 hours
-    if (this.fetchedData[name] && !this.fetchedData[name].fail && (+d - this.fetchedData[name].fetchTime < 24 * 3600 * 1000)) {
+    if (this.fetchedData[name] && !this.fetchedData[name].fail && (+d - this.fetchedData[name].fetchTime < 12 * 3600 * 1000)) {
      fetch = false;
     }
 
@@ -203,10 +210,9 @@ class Crawler {
     // force fetching
     if (force) fetch = true;
 
-    if (!fetch) return;
-
-    if (!this.fetchedData[name]) {
-      this.newCount++;
+    if (!fetch) {
+      if (callback) callback();
+      return;
     }
 
     this.fetchedData[name] = this.fetchedData[name] || {
@@ -247,19 +253,20 @@ class Crawler {
       }
 
       this.update();
+      if (callback) callback();
     });
+    return;
   }
 
-  update(mode) {
+  update() {
     this.writeCount++;
-    if (mode == 'info') {
-      helper.write('./data/info.json', this.fetchedInfo);
-      return;
-    }
+
+    // if not specific, write both
+    helper.write('./data/info.json', this.fetchedInfo);
     this.ds.write('./data/db.json', this.ds.wash(this.fetchedData));
 
     // update the seed
-    helper.write('./seed', this.ds.getTop(100, 'stats.dayInc').filter(v => Math.random() < 0.03).map(v => v.name).join(',').replace(/"/g, ''));
+    helper.write('./seed', this.ds.getTop(100, 'stats.dayInc').filter(v => Math.random() < 0.3).map(v => v.name).join(',').replace(/"/g, ''));
   }
 
   fetch(url, done) {
@@ -285,29 +292,56 @@ class Crawler {
 }
 
 const crawler = new Crawler();
+let keys = Object.keys(crawler.fetchedData);
+var bar = new ProgressBar('Updating [:bar] :percent :etas', {
+  total: keys.length
+});
+
 console.log("Total Packages: " + Object.keys(crawler.fetchedData).length);
 if (args.mode === 'update') {
   if (args.name) {
-      crawler.stat(args.name, true);
+    crawler.stat(args.name, true);
   } else {
-    Object.keys(crawler.fetchedData).forEach((pkg, i) => {
-      if (!crawler.fetchedData.hasOwnProperty(pkg)) return;
-      if (args.break && i > args.break) return;
-      if (args.skip && i < args.skip) return;
-
-      crawler.stat(pkg);
-    });
+    // parallel with args.paral || 30
+    let count = 0;
+    let callback = function() {
+      if (count < keys.length) {
+        setTimeout(function(){
+          crawler.stat(keys[count], false, callback);
+        }, 0)
+      }
+      count ++;
+      bar.tick();
+    };
+    for (let i = 0; i < (args.paral || 100); i++) {
+      setTimeout(function(){
+        crawler.stat(keys[count], false, callback);
+      }, 0)
+      count ++;
+    }
   }
 } else if (args.mode === 'info') {
   if (args.name) {
-      crawler.info(args.name, true);
+    crawler.info(args.name, true);
   } else {
-    Object.keys(crawler.fetchedData).forEach((pkg, i) => {
-      if (!crawler.fetchedData.hasOwnProperty(pkg)) return;
-      if (args.break && i > args.break) return;
-      if (args.skip && i < args.skip) return;
-      crawler.info(pkg);
-    });
+    // parallel with args.paral || 100
+    let keys = Object.keys(crawler.fetchedData);
+    let count = 0;
+    let callback = function() {
+      if (count < keys.length) {
+        setTimeout(function(){
+          crawler.info(keys[count], false, callback);
+        }, 0)
+      }
+      count ++;
+      bar.tick();
+    };
+    for (let i = 0; i < (args.paral || 100); i++) {
+      setTimeout(function(){
+        crawler.info(keys[count], false, callback);
+      }, 0)
+      count ++;
+    }
   }
 } else if (args.mode === "get") {
   if (args.name) {
