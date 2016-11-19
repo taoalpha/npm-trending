@@ -28,10 +28,10 @@ console.log(ds.getBottom(10, 'createTime').map(v => {return {name: v.name, descr
 
 */
 // console.log(ds.getTop(10, 'stats.dayInc').map(v => v.name).join(','));
-console.log(ds.getTop(50, 'stats.dayChange').map(v => v.name).join(','));
+console.log(ds.getTop(5, 'stats.dayChange').map(v => v.name).join(','));
 // console.log(ds.getTop(10, 'stats.nowInc').map(v => v.name).join(','));
 // console.log(ds.getTop(10, 'stats.nowChange').map(v => v.name).join(','));
 const d = new Date();
 d.setTime(d.getTime() - (d.getTimezoneOffset() * 60 * 1000));
 
-// console.log(ds.getTop(1, 'stats.dayChange'));
+console.log(dat.gulp);

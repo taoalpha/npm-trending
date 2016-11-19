@@ -198,7 +198,7 @@ class Crawler {
 
     // no fetch if last successful fetch's fetchTime is pretty close: < 12 hours
     // so can update today's stat if > 12 hours
-    if (this.fetchedData[name] && !this.fetchedData[name].fail && (+d - this.fetchedData[name].fetchTime < 12 * 3600 * 1000)) {
+    if (this.fetchedData[name] && !this.fetchedData[name].fail && (+d - this.fetchedData[name].fetchTime < 20 * 3600 * 1000)) {
      fetch = false;
     }
 
@@ -266,7 +266,7 @@ class Crawler {
     this.ds.write('./data/db.json', this.ds.wash(this.fetchedData));
 
     // update the seed
-    helper.write('./seed', this.ds.getTop(100, 'stats.dayInc').filter(v => Math.random() < 0.3).map(v => v.name).join(',').replace(/"/g, ''));
+    helper.write('./seed', this.ds.getTop(500, 'stats.dayInc').filter(v => Math.random() < 0.1).map(v => v.name).join(',').replace(/"/g, ''));
   }
 
   fetch(url, done) {
