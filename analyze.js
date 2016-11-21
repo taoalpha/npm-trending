@@ -9,7 +9,15 @@
 const ds = require('./lib/ds');
 const helper = require('./lib/helper');
 const info = helper.read('./data/info.json');
-let dat = ds.read('./data/db.json');
+// let dat = ds.read('./data/db.json');
+let dat = ds.read('./data/info.json');
+console.log(ds.getTop(10, "fetchTime").map(v => {
+  return {
+    nextUpdate: v.nextUpdate,
+    name: v.name,
+    fetchTime: new Date(v.fetchTime)
+  }
+}));
 /*
 console.log("======== Day Increase Number Top 10 ==========");
 console.log(ds.getTop(10, 'stats.dayInc').map(v => {return {name: v.name, description: info[v.name].description, dayInc: v.stats.dayInc}}));
@@ -28,10 +36,11 @@ console.log(ds.getBottom(10, 'createTime').map(v => {return {name: v.name, descr
 
 */
 // console.log(ds.getTop(10, 'stats.dayInc').map(v => v.name).join(','));
-console.log(ds.getTop(5, 'stats.dayChange').map(v => v.name).join(','));
+// console.log(ds.getTop(5, 'stats.dayChange').map(v => v.name).join(','));
+// console.log(ds.getTop(5, 'stats.downloads.2016-11-19').map(v => v.name).join(','));
 // console.log(ds.getTop(10, 'stats.nowInc').map(v => v.name).join(','));
 // console.log(ds.getTop(10, 'stats.nowChange').map(v => v.name).join(','));
 const d = new Date();
 d.setTime(d.getTime() - (d.getTimezoneOffset() * 60 * 1000));
 
-console.log(dat.gulp);
+// console.log(dat.xo);

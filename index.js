@@ -151,8 +151,8 @@ class Crawler {
         // if no updates, punish it, otherwise reward it
         if (data.version !== this.fetchedInfo.version) {
           Object.assign(this.fetchedInfo[name], data);
-          // min nextUpdate time: a day
-          this.fetchedInfo[name].nextUpdate = Math.max(this.fetchedInfo[name].nextUpdate / 2, 24 * 3600 * 1000);
+          // min nextUpdate time: 7 day
+          this.fetchedInfo[name].nextUpdate = Math.max(this.fetchedInfo[name].nextUpdate / 2, 7 * 24 * 3600 * 1000);
         } else {
           // max nextUpdate time: a year
           this.fetchedInfo[name].nextUpdate = Math.min(this.fetchedInfo[name].nextUpdate * 2, 52 * 7 * 24 * 3600 * 1000);
