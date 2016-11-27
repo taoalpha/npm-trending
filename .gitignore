@@ -3,3 +3,4 @@ data
 *.log
 dist
 generator.js
+dep.js

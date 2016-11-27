@@ -21,6 +21,22 @@
   },
   "xo": {
     "esnext": true,
-    "space": true
+    "space": 2,
+    "envs": [
+      "mocha"
+    ],
+    "rules": {
+      "quotes": [
+        "error",
+        "double",
+        {
+          "allowTemplateLiterals": true
+        }
+      ],
+      "curly": ["error", "multi-or-nest"]
+    },
+    "ignores": [
+      "test/**"
+    ]
   }
 }

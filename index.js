@@ -21,7 +21,7 @@ const args = helper.parseArgs(process.argv.slice(2));
 class Crawler {
   constructor() {
     this._PARSE_REG = /\/package\/([\w-]+)/g;
-    this._EXPAND_LAYER = 4;
+    this._EXPAND_LAYER = 1;
     this.pkgs = new Set();
     this._fetched = {};
     this.ds = ds;
@@ -266,7 +266,7 @@ class Crawler {
     this.ds.write('./data/db.json', this.ds.wash(this.fetchedData));
 
     // update the seed
-    helper.write('./seed', this.ds.getTop(500, 'stats.dayInc').filter(v => Math.random() < 0.1).map(v => v.name).join(',').replace(/"/g, ''));
+    helper.write('./seed', this.ds.getTop(500, 'stats.dayInc').filter(v => Math.random() < 0.2).map(v => v.name).join(',').replace(/"/g, ''));
   }
 
   fetch(url, done) {
