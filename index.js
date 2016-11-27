@@ -198,7 +198,7 @@ class Crawler {
 
     // no fetch if last successful fetch's fetchTime is pretty close: < 12 hours
     // so can update today's stat if > 12 hours
-    if (this.fetchedData[name] && !this.fetchedData[name].fail && (+d - this.fetchedData[name].fetchTime < 20 * 3600 * 1000)) {
+    if (this.fetchedData[name] && !this.fetchedData[name].fail && (+d - this.fetchedData[name].fetchTime < 18 * 3600 * 1000)) {
      fetch = false;
     }
 
@@ -297,7 +297,7 @@ var bar = new ProgressBar('Updating [:bar] :percent :etas', {
   total: keys.length
 });
 
-console.log("Total Packages: " + Object.keys(crawler.fetchedData).length);
+console.log("Total Packages: " + keys.length);
 if (args.mode === 'update') {
   if (args.name) {
     crawler.stat(args.name, true);
@@ -313,7 +313,7 @@ if (args.mode === 'update') {
       count ++;
       bar.tick();
     };
-    for (let i = 0; i < (args.paral || 100); i++) {
+    for (let i = 0; i < (args.paral || 30); i++) {
       setTimeout(function(){
         crawler.stat(keys[count], false, callback);
       }, 0)
@@ -324,7 +324,7 @@ if (args.mode === 'update') {
   if (args.name) {
     crawler.info(args.name, true);
   } else {
-    // parallel with args.paral || 100
+    // parallel with args.paral || 30
     let keys = Object.keys(crawler.fetchedData);
     let count = 0;
     let callback = function() {
@@ -336,7 +336,7 @@ if (args.mode === 'update') {
       count ++;
       bar.tick();
     };
-    for (let i = 0; i < (args.paral || 100); i++) {
+    for (let i = 0; i < (args.paral || 30); i++) {
       setTimeout(function(){
         crawler.info(keys[count], false, callback);
       }, 0)
