@@ -266,7 +266,7 @@ class Crawler {
     this.ds.write('./data/db.json', this.ds.wash(this.fetchedData));
 
     // update the seed
-    helper.write('./seed', this.ds.getTop(500, 'stats.dayInc').filter(v => Math.random() < 0.2).map(v => v.name).join(',').replace(/"/g, ''));
+    helper.write('./seed', helper.pickRandom(50, this.fetchedData).map(v => v.name).join(',').replace(/"/g, ''));
   }
 
   fetch(url, done) {
