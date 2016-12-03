@@ -199,7 +199,7 @@ class Crawler {
     // no fetch if last successful fetch's fetchTime is pretty close: < 12 hours
     // so can update today's stat if > 12 hours
     if (this.fetchedData[name] && !this.fetchedData[name].fail && (+d - this.fetchedData[name].fetchTime < 18 * 3600 * 1000)) {
-     fetch = false;
+      fetch = false;
     }
 
     // already fetched, fetch a pkg once day
