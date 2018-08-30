@@ -35,7 +35,7 @@ jobs:
       - run: yarn run fetch
       - run: git config --global user.email "CircleCI@CircleCI.com"
       - run: git config --global user.name "CircleCI"
-      - run: git commit -am "$( tail -n 1 message)"
+      - run: git add -A && git commit -m "$( tail -n 1 message)"
       - run: git push origin HEAD:master
 
 

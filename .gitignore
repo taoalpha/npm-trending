@@ -1,6 +1,6 @@
 node_modules
-data
 *.log
 dist
 generator.js
 dep.js
+yarn.lock

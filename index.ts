@@ -13,7 +13,7 @@
 
 import * as Promise from 'bluebird';
 import * as rp from "request-promise";
-import { readJsonSync, ensureFileSync, writeJsonSync, readFileSync, writeFileSync, readdirSync, removeSync } from "fs-extra";
+import { readJsonSync, ensureFileSync, writeJsonSync, readFileSync, writeFileSync, readdirSync, removeSync, pathExistsSync } from "fs-extra";
 import { Once } from "lodash-decorators";
 import { join as joinPath } from "path";
 
@@ -158,6 +158,10 @@ class NpmTrending {
 
     // init so it knows what to fetch
     init(): void {
+        // check if today's job is already finished
+        let date = new Date().toISOString().split("T")[0];
+        if (pathExistsSync(joinPath(NpmTrending.DATA_DIR, NpmTrending.INFO_DB_PREFIX + date + ".json"))) return;
+
         // try load previous fetched data (so we don't need to fetch those packages again)
         this.fetched = this._getFetched();
         this._lastFetched = this.fetched.total;
