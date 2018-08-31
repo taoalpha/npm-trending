@@ -2,10 +2,10 @@
  * 
  * Update @ 2018/8/30
  * 
- * move to typescript and circleci.
+ * move to typescript and circleCI.
  * 
- * Goal: use circleci to fetch / update / deploy continuously
- * Limit: free tier for circleci limits to 1 job <= 5min (which won't be enough to fetch all packages...)
+ * Goal: use circleCI to fetch / update / deploy continuously
+ * Limit: free tier for circleCI limits to 1 job <= 5min (which won't be enough to fetch all packages...)
  * Solution:
  *  - run same job multiple times and store all results
  *  - concatenate all results
@@ -16,62 +16,7 @@ import * as rp from "request-promise";
 import { readJsonSync, ensureFileSync, writeJsonSync, readFileSync, writeFileSync, readdirSync, removeSync, pathExistsSync } from "fs-extra";
 import { Once } from "lodash-decorators";
 import { join as joinPath } from "path";
-
-interface ServerPkgStatDownload {
-    downloads: number,
-    day: string
-}
-
-// interface of data from the server api
-interface ServerPkgStat {
-    error?: any,
-    start?: string,
-    end?: string,
-    package?: string,
-    downloads?: ServerPkgStatDownload[]
-}
-
-// interface we store locally
-// we separate information to two different dbs:
-// 1. package info, including description, version histories, etc (https://registry.npmjs.org/xo)
-// 2. package stats, including downloads (per day) (https://api.npmjs.org/downloads/range/last-year/xo)
-interface Maintainer {
-    email?: string,
-    name?: string,
-    url?: string
-}
-
-interface Repository {
-    type?: string,
-    url?: string
-}
-
-interface PackageInfo {
-    name: string,
-    versions?: any[],
-    maintainers?: Maintainer[],
-    time?: any,  // each revision time and created / modified
-    author?: Maintainer,
-    repository?: Repository,
-    description?: string,
-    homepage?: string,
-    keywords?: string[],
-    license?: string,
-    lastFetched?: number
-}
-
-// date - number
-interface PackageStat {
-    [key: string]: number
-}
-
-interface FetchHistory {
-    packages: {
-        [key: string]: 1 | 0 
-    },
-    count: number,
-    total: number
-}
+import { ServerPkgStat, PackageStat, PackageInfo, FetchHistory} from "./types";
 
 class NpmTrending {
     private infoDb : {

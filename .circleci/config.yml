@@ -28,7 +28,7 @@ jobs:
       - restore_cache:
           keys:
           - v1-tmp-{{ checksum "seed" }}
-          - v1-tmp-
+        #   - v1-tmp-
 
       - run: yarn install
 

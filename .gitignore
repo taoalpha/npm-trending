@@ -5,3 +5,4 @@ generator.js
 dep.js
 yarn.lock
 .tmp
+package-lock.json
