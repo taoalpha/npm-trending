@@ -50,9 +50,8 @@ jobs:
             - .tmp
           key: v1-tmp-{{ checksum "seed" }}
  
-      - run: git add -A && git commit -m "$(tail -n 1 message)"
-      - run:
-          command: if [[ `git status --porcelain` ]]; then git push origin HEAD:master; fi;
+      - run: 
+          command: if [[ `git status --porcelain` ]]; then git add -A && git commit -m "$(tail -n 1 message)" && git push origin HEAD:master; fi;
           name: push changes
 
 
