@@ -52,7 +52,7 @@ jobs:
  
       - run: git add -A && git commit -m "$(tail -n 1 message)"
       - run:
-          command: if [[ `git status --porcelain` ]]; then git push origin HEAD:master; else fi;
+          command: if [[ `git status --porcelain` ]]; then git push origin HEAD:master; fi;
           name: push changes
 
 
