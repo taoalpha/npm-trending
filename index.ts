@@ -97,7 +97,7 @@ class NpmTrending {
     }
 
     // path to store fetched data from previous runs
-    static TEMP_DIR = joinPath(__dirname, "_temp");
+    static TEMP_DIR = joinPath(__dirname, ".tmp");
     static MESSAGE_FILE = joinPath(__dirname, "message");
     static FETCHED_PACKAGE_FILE = joinPath(NpmTrending.TEMP_DIR, "fetched.json");
     static INFO_DB_PREFIX = "info-";
@@ -110,7 +110,7 @@ class NpmTrending {
     static DATA_DIR = "data";
 
     // configs
-    static TIME_OUT = 3 * 1000; // (3m)
+    static TIME_OUT = 10 * 1000; // (3m)
 
     // queue for fetching
     private queue : string[] = [];
@@ -154,6 +154,11 @@ class NpmTrending {
 
         // update message
         writeFileSync(NpmTrending.MESSAGE_FILE, `#${this.fetched.count} fetch finished! ${this.fetched.total - this._lastFetched} packages fetched this time.`, "utf-8");
+
+
+        // reset infoDb and statDb
+        this.infoDb = {};
+        this.statDb = {};
     }
 
     // init so it knows what to fetch
@@ -185,7 +190,7 @@ class NpmTrending {
         // terminate when no pkg in the queue
         // will happen when we almost fetched everything :)
         // TODO: not sure about the total number of packages we can fetch in a day
-        if (!this.queue.length || this.fetched.total > 200) {
+        if (!this.queue.length || this.fetched.total > 100) {
             // call it a day :)
             return this._concat();
         }
@@ -291,7 +296,6 @@ class NpmTrending {
 
         // remove _temp
         removeSync(NpmTrending.TEMP_DIR);
-
 
         // update message
         writeFileSync(NpmTrending.MESSAGE_FILE, `We have finished the job for ${date}! ${this.fetched.total} packages fetched today.`, "utf-8");

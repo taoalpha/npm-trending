@@ -24,6 +24,12 @@ jobs:
           # fallback to using the latest cache if no exact match is found
           - v1-dependencies-
 
+      # resore temp from previous stored
+      - restore_cache:
+          keys:
+          - v1-tmp-{{ checksum "seed" }}
+          - v1-tmp-
+
       - run: yarn install
 
       - save_cache:
@@ -31,10 +37,19 @@ jobs:
             - node_modules
           key: v1-dependencies-{{ checksum "package.json" }}
         
-      # run 
+      # run fetch
       - run: yarn run fetch
+
+      # set committer
       - run: git config --global user.email "CircleCI@CircleCI.com"
       - run: git config --global user.name "CircleCI"
+
+      # store cache on .tmp
+      - save_cache:
+          paths:
+            - .tmp
+          key: v1-tmp-{{ checksum "seed" }}
+ 
       - run: git add -A && git commit -m "$( tail -n 1 message)"
       - run: git push origin HEAD:master
 
