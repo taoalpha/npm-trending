@@ -190,7 +190,7 @@ class NpmTrending {
         // terminate when no pkg in the queue
         // will happen when we almost fetched everything :)
         // TODO: not sure about the total number of packages we can fetch in a day
-        if (!this.queue.length || this.fetched.total > 100) {
+        if (!this.queue.length || this.fetched.total > 200) {
             // call it a day :)
             return this._concat();
         }
