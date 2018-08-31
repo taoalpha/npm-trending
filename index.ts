@@ -110,7 +110,7 @@ class NpmTrending {
     static DATA_DIR = "data";
 
     // configs
-    static TIME_OUT = 10 * 1000; // (3m)
+    static TIME_OUT = 3 * 60 * 1000; // (3m)
 
     // queue for fetching
     private queue : string[] = [];
@@ -190,7 +190,7 @@ class NpmTrending {
         // terminate when no pkg in the queue
         // will happen when we almost fetched everything :)
         // TODO: not sure about the total number of packages we can fetch in a day
-        if (!this.queue.length || this.fetched.total > 200) {
+        if (!this.queue.length || this.fetched.total > 100000) {
             // call it a day :)
             return this._concat();
         }
