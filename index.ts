@@ -88,9 +88,13 @@ class NpmTrending {
         count: 0
     };
 
+    // queue for fetching
+    private queue : string[] = [];
+
     // some variables for termination or analyse
     private _startTime = Date.now();
     private _lastFetched: number = 0;
+    private _fetchErrors: number = 0;
 
     constructor() {
         this.init();
@@ -111,9 +115,7 @@ class NpmTrending {
 
     // configs
     static TIME_OUT = 3 * 60 * 1000; // (3m)
-
-    // queue for fetching
-    private queue : string[] = [];
+    static MAX_FETCH_ERRORS = 50;
 
     @Once()
     private _getFetched() : FetchHistory {
@@ -194,9 +196,17 @@ class NpmTrending {
             // call it a day :)
             return this._concat();
         }
+        
+        // terminate this round if too many errors
+        if (this._fetchErrors > NpmTrending.MAX_FETCH_ERRORS) {
+            return Promise.resolve();
+        }
 
         // DEBUG - see how fast the queue can go
         // console.log(this.queue.length);
+        if ((this.fetched.total - this._lastFetched) % 100 === 0) {
+            console.log(`${this.fetched.total - this._lastFetched} packages fetched! ${this._fetchErrors} errors occurred!`)
+        }
 
         // terminate if time's up
         if (Date.now() - this._startTime > NpmTrending.TIME_OUT) return Promise.resolve();
@@ -246,7 +256,10 @@ class NpmTrending {
     // fetch pkg info
     fetchPkgInfo(pkg: string): Promise<any> {
         if (!pkg) return Promise.resolve({error: true});
-        return rp({uri: "https://registry.npmjs.org/" + pkg, json: true}).catch(e => ({error: e}));
+        return rp({uri: "https://registry.npmjs.org/" + pkg, json: true}).catch(e => {
+            this._fetchErrors++;
+            return {error: e};
+        });
     }
 
     // fetch pkg stats
@@ -259,7 +272,10 @@ class NpmTrending {
                 this.fetched.total ++;
                 return res;
             })
-            .catch(e => ({error: e}));
+            .catch(e => {
+                this._fetchErrors++;
+                return {error: e};
+            });
     }
 
     // ready to concat all files
