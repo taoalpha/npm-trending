@@ -57,15 +57,15 @@ jobs:
           command: if [[ $(tail -n 1 message) = *"finished the job for"* ]]; then yarn run generate && yarn run deploy; fi;
           name: deploy
 
-workflows:
-  version: 2
-  build-deploy:
-    triggers:
-      - schedule:
-          cron: "0 3 * * *"
-          filters:
-            branches:
-              only:
-                - master
-    jobs:
-      - build
+# workflows:
+  # version: 2
+  # build-deploy:
+    # triggers:
+      # - schedule:
+          # cron: "0 3 * * *"
+          # filters:
+            # branches:
+              # only:
+                # - master
+    # jobs:
+      # - build
