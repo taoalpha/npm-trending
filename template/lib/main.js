@@ -104,12 +104,16 @@ function ready(fn) {
     }
 }
 
+// by default, go to previous day
+let direction = -1;
+
 // render
 ready(() => {
     // get the json
     axios.get(`./reports/pkg-${date}.json`)
         .then(function (response) {
             let data = response.data;
+            if (!data.dayTop || data.dayTop.length <= 0) goTo();
             // update title
             document.title = `${data.title} @ ${prettyDate(data.date)}`;
 
@@ -119,12 +123,12 @@ ready(() => {
         })
         .catch(function (error) {
             console.log(error);
-            // fallback to next date
-            goTo(1);
+            goTo();
         });
 });
 
 function goTo(d) {
+    d = d || direction;
     let newDate = new Date(date);
     newDate.setDate(newDate.getDate() + d);
     if (newDate > Date.now()) return;
@@ -137,9 +141,11 @@ document.addEventListener("keyup", function (e) {
     if (e.keyCode === 37) {
         // left
         goTo(-1);
+        direction = -1;
     } else if (e.keyCode === 39) {
         // right
         goTo(1)
+        direction = 1;
     }
 });
 
