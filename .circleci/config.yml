@@ -59,13 +59,13 @@ jobs:
 
 workflows:
   version: 2
-    nightly:
-      triggers:
-        - schedule:
-            cron: "0 3 * * *"
-            filters:
-              branches:
-                only:
-                  - master
+  build-deploy:
+    triggers:
+      - schedule:
+          cron: "0 3 * * *"
+          filters:
+            branches:
+              only:
+                - master
     jobs:
       - build
