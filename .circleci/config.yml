@@ -8,7 +8,7 @@ jobs:
     docker:
       # specify the version you desire here
       - image: circleci/node:latest
-      
+
     working_directory: ~/repo
 
     steps:
@@ -36,7 +36,7 @@ jobs:
           paths:
             - node_modules
           key: v1-dependencies-{{ checksum "package.json" }}
-        
+
       # run fetch
       - run: yarn run fetch
 
@@ -49,7 +49,7 @@ jobs:
           paths:
             - .tmp
           key: v1-tmp-{{ checksum "seed" }}
- 
+
       - run: 
           command: if [[ `git status --porcelain` ]]; then git add -A && git commit -m "$(tail -n 1 message)" && git push origin HEAD:master; fi;
           name: push changes
@@ -57,5 +57,15 @@ jobs:
           command: if [[ $(tail -n 1 message) = *"finished the job for"* ]]; then yarn run generate && yarn run deploy; fi;
           name: deploy
 
-
-
+workflows:
+  version: 2
+    nightly:
+      triggers:
+        - schedule:
+            cron: "0 3 * * *"
+            filters:
+              branches:
+                only:
+                  - master
+    jobs:
+      - build
