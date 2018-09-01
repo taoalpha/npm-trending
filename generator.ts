@@ -28,7 +28,9 @@ class Generator {
 
     generate(date: string) {
         if (!date) return;
-        let {top, topIncrease, topChange} = this.analyze.getTop(25, date);
+        let {top, topIncrease, topChange} = this.analyze.getTop(25, date, {
+            minDownload: 100
+        });
         let dayData : DailyReport = {
             date: date,
             title: "Npm Trending Report",
@@ -48,7 +50,7 @@ class Generator {
 
 
 let generator = new Generator();
-let date = new Date("2017-09-01");
+let date = new Date("2017-03-01");
 let endDate = new Date();
 
 while (date < endDate) {

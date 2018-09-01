@@ -210,7 +210,7 @@ class NpmTrending {
     // TODO: optimize to use bulk queries
     fetchPkgStat(pkg: string): Promise<ServerPkgStat> {
         if (!pkg) return Promise.resolve({error: true});
-        return rp({uri: "https://api.npmjs.org/downloads/range/2017-01-01:2018-08-31/" + pkg, json: true})
+        return rp({uri: "https://api.npmjs.org/downloads/range/last-week/" + pkg, json: true})
             .then(res => {
                 // mark as fetched
                 this.fetched.packages[pkg] = 1;

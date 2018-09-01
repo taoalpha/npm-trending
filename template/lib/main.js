@@ -128,6 +128,7 @@ function goTo(d) {
     let newDate = new Date(date);
     newDate.setDate(newDate.getDate() + d);
     if (newDate > Date.now()) return;
+    if (newDate <= new Date("2017-03-01")) return;
     document.location = "?date=" + newDate.toISOString().split("T")[0];
 }
 

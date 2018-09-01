@@ -51,7 +51,7 @@ export class Analyze {
     }
 
     // get top increase compared to one day before
-    getTop(K: number, date: string) {
+    getTop(K: number, date: string, options: any = {}) {
         let topK: Package[] = [],
             topKIncrease: Package[] = [],
             topKChange: Package[] = [];
@@ -75,6 +75,12 @@ export class Analyze {
                     return this[date] > this[prevDate] ? "arrow-up" : "arrow-down";
                 }
             };
+
+            // skip pkg that has too few downloads
+            if (options.minDownload && pkgToAdd[date] < options.minDownload) {
+                i++;
+                continue;
+            }
 
             // fill in info
             if (this.infoDb[keys[i]]) {
@@ -100,28 +106,34 @@ export class Analyze {
             }
 
             // topKIncrease
-            for (let j = 0; j < K; j++) {
-                // if undefined, fill in
-                if (!topKIncrease[j]) topKIncrease[j] = swapPkg;
+            // skip pkg that has too few inc (lower than threshold)
+            if (!options.incThreshold || options.incThreshold < swapPkg.inc) {
+                for (let j = 0; j < K; j++) {
+                    // if undefined, fill in
+                    if (!topKIncrease[j]) topKIncrease[j] = swapPkg;
  
-                // if current one is smaller than swapPkg, swap
-                if (topKIncrease[j].inc < swapPkg.inc) {
-                    let temp = topKIncrease[j];
-                    topKIncrease[j]  = swapPkg;
-                    swapPkg = temp;
+                    // if current one is smaller than swapPkg, swap
+                    if (topKIncrease[j].inc < swapPkg.inc) {
+                        let temp = topKIncrease[j];
+                        topKIncrease[j]  = swapPkg;
+                        swapPkg = temp;
+                    }
                 }
             }
 
             // topKChange
-            for (let j = 0; j < K; j++) {
-                // if undefined, fill in
-                if (!topKChange[j]) topKChange[j] = swapPkg;
+            // skip pkg that has too few change (lower than threshold)
+            if (!options.changeThreshold || options.changeThreshold < swapPkg.change) {
+                for (let j = 0; j < K; j++) {
+                    // if undefined, fill in
+                    if (!topKChange[j]) topKChange[j] = swapPkg;
  
-                // if current one is smaller than swapPkg, swap
-                if (topKChange[j].change < swapPkg.change) {
-                    let temp = topKChange[j];
-                    topKChange[j]  = swapPkg;
-                    swapPkg = temp;
+                    // if current one is smaller than swapPkg, swap
+                    if (topKChange[j].change < swapPkg.change) {
+                        let temp = topKChange[j];
+                        topKChange[j]  = swapPkg;
+                        swapPkg = temp;
+                    }
                 }
             }
  
@@ -131,4 +143,4 @@ export class Analyze {
     }
 }
 
-console.log(new Analyze("2018-08-31").getTop(200, "2018-08-30").topIncrease.map(v => v.name).join(","))
+// console.log(new Analyze("2018-09-01").getTop(20, "2017-03-01", {minDownload: 100}))
