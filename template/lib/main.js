@@ -17,6 +17,22 @@ const prettyDate = (date) => {
     return new Date(date).toGMTString().replace(" 00:00:00 GMT", "");
 }
 
+const numberUnit = {
+    1000: "k",
+    1000000: "m"
+}
+const prettyNumber = (n) => {
+    let m = (n / Math.pow(10, 6)).toFixed(2);
+    let k = (n / Math.pow(10, 3)).toFixed(2);
+    if ( +m > 1) {
+        return `${m}m`; 
+    } else if (+k > 1) {
+        return `${k}k`;
+    } else {
+        return n;
+    }
+}
+
 const HEADER_TEMPLATE = data => `
 ${data.title} @ ${prettyDate(data.date)}
 <span>(total : ${data.total})</span>
@@ -24,11 +40,11 @@ ${data.title} @ ${prettyDate(data.date)}
 
 const renderPkg = (pkg, category) => {
     if (category.id === "inc") {
-        return `<span class="fa fa-${pkg.status}"> ${pkg.inc} (${(pkg.change * 100).toFixed(2)}%)</span>`;
+        return `<span class="fa fa-${pkg.status}"> ${prettyNumber(pkg.inc)} (${(pkg.change * 100).toFixed(2)}%)</span>`;
     } else if (category.id === "change") {
-        return `<span class="fa fa-${pkg.status}"> ${(pkg.change * 100).toFixed(2)}% (${pkg.inc})</span>`;
+        return `<span class="fa fa-${pkg.status}"> ${(pkg.change * 100).toFixed(2)}% (${prettyNumber(pkg.inc)})</span>`;
     } else {
-        return `<span class="fa fa-${pkg.status}"> ${pkg[category.date]}</span>`;
+        return `<span class="fa fa-${pkg.status}"> ${prettyNumber(pkg[category.date])} (${prettyNumber(pkg.inc)})</span>`;
     }
 }
 // for each column
@@ -45,14 +61,14 @@ const COLUMN_TEMPLATE = (category, data) => `
             <div class="pkgDesc">${pkg.description}</div>
             <div class="pkgInfo">
                 <span>
-                  <a href="https://www.npmjs.com/~${pkg.author && pkg.author.name || "Unknown"}"><i class="fa fa-user"> ${pkg.author && pkg.author.name || "Unknown"}</i></a>
+                  ${pkg.author ? `<a href="https://www.npmjs.com/~${pkg.author.name}">` : ""}<i class="fa fa-user"> ${pkg.author && pkg.author.name || "Unknown"}</i>${pkg.author ? "</a>" : ""}
                 </span>
                 ${pkg.homepage ? `
                 <span> 
                   <a href="${pkg.homepage}"><i class="fa fa-link"> homepage</i></a>
                 </span>
                 ` : ""}
-                <span><i class="fa fa-download"> ${pkg[category.date]} (${category.date})</i></span>
+                <span><i class="fa fa-download"> ${prettyNumber(pkg[category.date])} (${category.date})</i></span>
             </div>
             <div class="share"></div>
         </div>
@@ -91,7 +107,7 @@ function ready(fn) {
 // render
 ready(() => {
     // get the json
-    axios.get(`/reports/pkg-${date}.json`)
+    axios.get(`./reports/pkg-${date}.json`)
         .then(function (response) {
             let data = response.data;
             // update title

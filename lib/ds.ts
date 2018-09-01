@@ -40,9 +40,9 @@ export class Analyze {
 
     private keys: string[] = [];
    
-    constructor() {
-        this.statDb = readJsonSync(join(__dirname, "../data/stat-" + this.today + ".json"));
-        this.infoDb = readJsonSync(join(__dirname, "../data/info-" + this.today + ".json"));
+    constructor(date?: string) {
+        this.statDb = readJsonSync(join(__dirname, "../data/stat-" + (date || this.today) + ".json"));
+        this.infoDb = readJsonSync(join(__dirname, "../data/info-" + (date || this.today) + ".json"));
         this.keys = Object.keys(this.statDb);
     }
 
@@ -130,3 +130,5 @@ export class Analyze {
         return {top: topK, topChange: topKChange, topIncrease: topKIncrease};
     }
 }
+
+console.log(new Analyze("2018-08-31").getTop(200, "2018-08-30").topIncrease.map(v => v.name).join(","))

@@ -59,7 +59,7 @@ class NpmTrending {
     static DATA_DIR = "data";
 
     // configs
-    static TIME_OUT = 3 * 60 * 1000; // (3m)
+    static TIME_OUT = 5 * 60 * 1000; // (5m)
     static MAX_FETCH_ERRORS = 50;
 
     @Once()
@@ -96,12 +96,11 @@ class NpmTrending {
         // update seed
         let seed = "";
         if (this.queue.length) seed += this.queue.join(",");
-        else seed = "xo,webpack";  // default seed: will be used if no queue, it will be used for next day's initial fetch
+        else seed = Object.keys(this.fetched.packages).join(",");  // default seed: will be used if no queue, it will be used for next day's initial fetch, the idea is all packages previous fetched should be included at least :)
         writeFileSync(NpmTrending.SEED_FILE, seed, "utf-8");
 
         // update message
         writeFileSync(NpmTrending.MESSAGE_FILE, `#${this.fetched.count} fetch finished! ${this.fetched.total - this._lastFetched} packages fetched this time.`, "utf-8");
-
 
         // reset infoDb and statDb
         this.infoDb = {};
@@ -208,9 +207,10 @@ class NpmTrending {
     }
 
     // fetch pkg stats
+    // TODO: optimize to use bulk queries
     fetchPkgStat(pkg: string): Promise<ServerPkgStat> {
         if (!pkg) return Promise.resolve({error: true});
-        return rp({uri: "https://api.npmjs.org/downloads/range/last-year/" + pkg, json: true})
+        return rp({uri: "https://api.npmjs.org/downloads/range/2017-01-01:2018-08-31/" + pkg, json: true})
             .then(res => {
                 // mark as fetched
                 this.fetched.packages[pkg] = 1;
