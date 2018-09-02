@@ -51,7 +51,7 @@ class Generator {
 
 let generator = new Generator();
 let endDate = new Date();
-let date = new Date().setDate(endDate.getDate() - 7);
+let date = new Date().setDate(endDate.getDate() - 5);
 
 while (date < endDate) {
     generator.generate(date.toISOString().split("T")[0]);
