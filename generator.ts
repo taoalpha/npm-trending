@@ -50,8 +50,8 @@ class Generator {
 
 
 let generator = new Generator();
-let date = new Date("2017-03-01");
 let endDate = new Date();
+let date = new Date().setDate(endDate.getDate() - 7);
 
 while (date < endDate) {
     generator.generate(date.toISOString().split("T")[0]);
