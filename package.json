@@ -6,7 +6,7 @@
   "scripts": {
     "fetch": "ts-node index.ts",
     "generate": "ts-node generator.ts",
-    "deploy": "gh-pages -d dist"
+    "deploy": "gh-pages -d dist -a"
   },
   "author": "",
   "license": "ISC",

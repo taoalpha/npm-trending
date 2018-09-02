@@ -22,14 +22,16 @@ const numberUnit = {
     1000000: "m"
 }
 const prettyNumber = (n) => {
+    let prefix = n > 0 ? 1 : -1;
+    n = Math.abs(n);
     let m = (n / Math.pow(10, 6)).toFixed(2);
     let k = (n / Math.pow(10, 3)).toFixed(2);
     if ( +m > 1) {
-        return `${m}m`; 
+        return `${prefix * m}m`; 
     } else if (+k > 1) {
-        return `${k}k`;
+        return `${prefix * k}k`;
     } else {
-        return n;
+        return prefix * n;
     }
 }
 
