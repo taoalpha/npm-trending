@@ -27,7 +27,7 @@ jobs:
       # resore temp from previous stored
       - restore_cache:
           keys:
-          - v1-tmp-{{ checksum "seed" }}
+          - v1-tmp-{{ checksum "message" }}
         #   - v1-tmp-
 
       - run: yarn install
@@ -48,7 +48,7 @@ jobs:
       - save_cache:
           paths:
             - .tmp
-          key: v1-tmp-{{ checksum "seed" }}
+          key: v1-tmp-{{ checksum "message" }}
 
       - run: 
           command: if [[ `git status --porcelain` ]]; then git add -A && git commit -m "$(tail -n 1 message)" && git push origin HEAD:master; fi;
