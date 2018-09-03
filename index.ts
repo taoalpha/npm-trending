@@ -43,14 +43,20 @@ class NpmTrending {
 
     constructor() {
         this.init();
+
+        // emit stats after run
+        process.on('exit', (code) => {
+            console.log(`About to exit with code: ${code}`);
+            console.log(`so far, we have fetched ${this.fetched.total}, this time, we fetched ${this.fetched.total - this._lastFetched}, error: ${this._fetchErrors}`);
+        });
     }
 
     // path to store fetched data from previous runs
     static TEMP_DIR = joinPath(__dirname, ".tmp");
     static MESSAGE_FILE = joinPath(__dirname, "message");
-    static FETCHED_PACKAGE_FILE = joinPath(NpmTrending.TEMP_DIR, "fetched.json");
-    static INFO_DB_PREFIX = "info-";
-    static STAT_DB_PREFIX = "stat-";
+    static FETCHED_PACKAGE_FILE = joinPath(NpmTrending.TEMP_DIR, new Date().toISOString().split("T")[0] + "-fetched.json");
+    static INFO_DB_PREFIX = "info-" + new Date().toISOString().split("T")[0] + "-";
+    static STAT_DB_PREFIX = "stat-" + new Date().toISOString().split("T")[0] + "-";
 
     // seed file that we will start our random crawling
     static SEED_FILE = joinPath(__dirname, "seed");
@@ -177,33 +183,26 @@ class NpmTrending {
                 });
 
                 // fetch pkg stats
-                // return Promise.all(data.map(pkg => this.fetchPkgStat(pkg.name)));
-                return this.bulkFetchPkgStat(data.map(pkg => pkg.name));
+                // 'scoped packages are not currently supported in bulk lookups' - so scopedPkg will need to be fetched individually
+                let pkgToBeFetched = data.map(pkg => pkg.name);
+                let scopedPkg = pkgToBeFetched.filter(pkg => pkg.indexOf("@") === 0);
+                let bulkPkg = pkgToBeFetched.filter(pkg => pkg.indexOf("@") !== 0);
+                return Promise.all([this.bulkFetchPkgStat(bulkPkg)].concat(scopedPkg.map(pkg => this.fetchPkgStat(pkg))));
             })
-            .then(data => {
-                // downloads will be a required field for stats
-                // data = data.filter(pkg => pkg && !pkg.error && pkg.downloads);
+            .then(res => {
+                res.forEach(data => {
+                    // store results from bulk fetch
+                    Object.keys(data).forEach(pkgName => {
+                        let pkg = data[pkgName];
+                        if (!pkg || pkg.error || !pkg.downloads) return;
+                        pkg.downloads.forEach(download => {
+                            this.statDb[pkg.package] = this.statDb[pkg.package] || {};
 
-                // data.forEach(pkg => {
-                //     pkg.downloads.forEach(download => {
-                //         this.statDb[pkg.package] = this.statDb[pkg.package] || {};
-
-                //         // don't store 0 (save space)
-                //         if (download.downloads) this.statDb[pkg.package][download.day] = download.downloads;
-                //     });
-                // });
-                
-                // store results from bulk fetch
-                Object.keys(data).forEach(pkgName => {
-                    let pkg = data[pkgName];
-                    if (!pkg || pkg.error || !pkg.downloads) return;
-                    pkg.downloads.forEach(download => {
-                        this.statDb[pkg.package] = this.statDb[pkg.package] || {};
-
-                        // don't store 0 (save space)
-                        if (download.downloads) this.statDb[pkg.package][download.day] = download.downloads;
+                            // don't store 0 (save space)
+                            if (download.downloads) this.statDb[pkg.package][download.day] = download.downloads;
+                        });
                     });
-                });
+                })
 
                 // start next round of request
                 return this.fetch();
@@ -217,14 +216,15 @@ class NpmTrending {
         if (this.fetched.packages[pkg]) return Promise.resolve({});
         return rp({uri: "https://registry.npmjs.org/" + pkg, json: true}).catch(e => {
             this._fetchErrors++;
+            console.log(e);
             return {error: e};
         });
     }
 
     // fetch pkg stats
     // TODO: optimize to use bulk queries
-    fetchPkgStat(pkg: string): Promise<ServerPkgStat> {
-        if (!pkg) return Promise.resolve({error: true});
+    fetchPkgStat(pkg: string): Promise<{[key: string]: ServerPkgStat}> {
+        if (!pkg) return Promise.resolve({[pkg]: {error: true}});
         // skip fetched
         if (this.fetched.packages[pkg]) return Promise.resolve({});
         return rp({uri: "https://api.npmjs.org/downloads/range/last-week/" + pkg, json: true})
@@ -232,11 +232,12 @@ class NpmTrending {
                 // mark as fetched
                 this.fetched.packages[pkg] = 1;
                 this.fetched.total ++;
-                return res;
+                return {[pkg]: res};
             })
             .catch(e => {
                 this._fetchErrors++;
-                return {error: e};
+                console.log(e);
+                return {[pkg]: {error: e}};
             });
     }
 
@@ -256,6 +257,7 @@ class NpmTrending {
             })
             .catch(e => {
                 this._fetchErrors++;
+                console.log(e);
                 return {all: {error: e}};
             });
  
