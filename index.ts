@@ -16,7 +16,7 @@ import * as rp from "request-promise";
 import { readJsonSync, ensureFileSync, writeJsonSync, readFileSync, writeFileSync, readdirSync, removeSync, pathExistsSync } from "fs-extra";
 import { Once } from "lodash-decorators";
 import { join as joinPath } from "path";
-import { ServerPkgStat, PackageStat, PackageInfo, FetchHistory} from "./types";
+import { ServerPkgStat, PackageStat, PackageInfo, FetchHistory, FetchStatus} from "./types";
 
 class NpmTrending {
     private infoDb : {
@@ -55,8 +55,8 @@ class NpmTrending {
     static TEMP_DIR = joinPath(__dirname, ".tmp");
     static MESSAGE_FILE = joinPath(__dirname, "message");
     static FETCHED_PACKAGE_FILE = joinPath(NpmTrending.TEMP_DIR, new Date().toISOString().split("T")[0] + "-fetched.json");
-    static INFO_DB_PREFIX = "info-" + new Date().toISOString().split("T")[0] + "-";
-    static STAT_DB_PREFIX = "stat-" + new Date().toISOString().split("T")[0] + "-";
+    static INFO_DB_PREFIX = "info-" + new Date().toISOString().split("T")[0];
+    static STAT_DB_PREFIX = "stat-" + new Date().toISOString().split("T")[0];
 
     // seed file that we will start our random crawling
     static SEED_FILE = joinPath(__dirname, "seed");
@@ -85,8 +85,8 @@ class NpmTrending {
         // if no data fetched, no need to write anything
         if (!Object.keys(this.infoDb).length || !Object.keys(this.statDb).length) return;
 
-        let infoDb = joinPath(NpmTrending.TEMP_DIR, NpmTrending.INFO_DB_PREFIX + this.fetched.count + ".json")
-        let statDb = joinPath(NpmTrending.TEMP_DIR, NpmTrending.STAT_DB_PREFIX + this.fetched.count + ".json")
+        let infoDb = joinPath(NpmTrending.TEMP_DIR, NpmTrending.INFO_DB_PREFIX + "-" + this.fetched.count + ".json")
+        let statDb = joinPath(NpmTrending.TEMP_DIR, NpmTrending.STAT_DB_PREFIX + "-" + this.fetched.count + ".json")
         ensureFileSync(infoDb);
         ensureFileSync(statDb);
         ensureFileSync(NpmTrending.FETCHED_PACKAGE_FILE);
@@ -117,7 +117,7 @@ class NpmTrending {
     init(): void {
         // check if today's job is already finished
         let date = new Date().toISOString().split("T")[0];
-        if (pathExistsSync(joinPath(NpmTrending.DATA_DIR, NpmTrending.INFO_DB_PREFIX + date + ".json"))) return;
+        if (pathExistsSync(joinPath(NpmTrending.DATA_DIR, NpmTrending.INFO_DB_PREFIX + ".json"))) return;
 
         // try load previous fetched data (so we don't need to fetch those packages again)
         this.fetched = this._getFetched();
@@ -177,8 +177,13 @@ class NpmTrending {
                     let versions = pkg.versions && Object.keys(pkg.versions).sort((a, b) => a.localeCompare(b));
                     if (versions && versions.length >= 1) {
                         let latest = pkg.versions[versions[versions.length - 1]];
-                        Object.keys(latest.dependencies || {}).forEach(dep => this.fetched.packages[dep] || this.queue.push(dep));
-                        Object.keys(latest.devDependencies || {}).forEach(dep => this.fetched.packages[dep] || this.queue.push(dep));
+                        // add deps to the queue if its not in the list
+                        Object.keys(latest.dependencies || {}).forEach(dep => {
+                            if (typeof this.fetched.packages[dep] === "undefined") this.queue.push(dep);
+                        });
+                        Object.keys(latest.devDependencies || {}).forEach(dep => {
+                            if (typeof this.fetched.packages[dep] === "undefined") this.queue.push(dep);
+                        });
                     }
                 });
 
@@ -212,55 +217,111 @@ class NpmTrending {
     // fetch pkg info
     fetchPkgInfo(pkg: string): Promise<any> {
         if (!pkg) return Promise.resolve({error: true});
+
+        // skip fetching
+        if (this.fetched.packages[pkg] == FetchStatus.InfoFetching) return Promise.resolve({});
+
         // skip fetched
-        if (this.fetched.packages[pkg]) return Promise.resolve({});
-        return rp({uri: "https://registry.npmjs.org/" + pkg, json: true}).catch(e => {
+        if (this.fetched.packages[pkg] == FetchStatus.InfoFetched) return Promise.resolve({});
+
+        let promise = rp({uri: "https://registry.npmjs.org/" + pkg, json: true})
+        .then(res => {
+            this.fetched.packages[pkg] === FetchStatus.InfoFetched;
+            return res;
+        })
+        .catch(e => {
+            // allow one retry
+            if (this.fetched.packages[pkg] === FetchStatus.InfoFetchFailed) this.fetched.packages[pkg] = FetchStatus.InfoFetched;
+            else this.fetched.packages[pkg] === FetchStatus.InfoFetchFailed;
             this._fetchErrors++;
-            console.log(e);
+            console.log(e.message);
             return {error: e};
         });
+
+        this.fetched.packages[pkg] = FetchStatus.InfoFetching;
+
+        return promise;
     }
 
     // fetch pkg stats
     // TODO: optimize to use bulk queries
     fetchPkgStat(pkg: string): Promise<{[key: string]: ServerPkgStat}> {
         if (!pkg) return Promise.resolve({[pkg]: {error: true}});
-        // skip fetched
-        if (this.fetched.packages[pkg]) return Promise.resolve({});
-        return rp({uri: "https://api.npmjs.org/downloads/range/last-week/" + pkg, json: true})
+
+        // skip pending ones
+        if (this.fetched.packages[pkg] === FetchStatus.Pending) return Promise.resolve({});
+
+        // skip finished ones
+        if (this.fetched.packages[pkg] === FetchStatus.Done) return Promise.resolve({});
+
+        let promise = rp({uri: "https://api.npmjs.org/downloads/range/last-week/" + pkg, json: true})
             .then(res => {
                 // mark as fetched
-                this.fetched.packages[pkg] = 1;
+                this.fetched.packages[pkg] = FetchStatus.Done;
                 this.fetched.total ++;
                 return {[pkg]: res};
             })
             .catch(e => {
-                this._fetchErrors++;
-                console.log(e);
+                this._errorHandler(e, [pkg]);
                 return {[pkg]: {error: e}};
             });
+
+        // set ready to pending
+        if (this.fetched.packages[pkg] === FetchStatus.Ready) this.fetched.packages[pkg] = FetchStatus.Pending;
+
+        return promise;
     }
 
     // fetch stats for multiple packages at once
     bulkFetchPkgStat(packages: string[] = []) : Promise<{[key: string]: ServerPkgStat}> {
-        // remove fetched
-        packages = packages.filter(pkg => !this.fetched.packages[pkg]);
+        // remove fetched and fetching
+        packages = packages.filter(pkg => this.fetched.packages[pkg] !== FetchStatus.Done && this.fetched.packages[pkg] !== FetchStatus.Pending);
+
         if (!packages.length) return Promise.resolve({all: {error: true}});
-        return rp({uri: "https://api.npmjs.org/downloads/range/last-week/" + packages.join(","), json: true})
+
+        // the request
+        let promise = rp({uri: "https://api.npmjs.org/downloads/range/last-week/" + packages.join(","), json: true})
             .then(res => {
                 // mark as fetched
                 packages.forEach(pkg => {
-                    this.fetched.packages[pkg] = 1;
+                    this.fetched.packages[pkg] = FetchStatus.Done;
                     this.fetched.total ++;
                 });
                 return res;
             })
             .catch(e => {
-                this._fetchErrors++;
-                console.log(e);
+                this._errorHandler(e, packages);
                 return {all: {error: e}};
             });
+
+        // set to Pending if its Ready
+        packages.forEach(pkg => {
+            if (this.fetched.packages[pkg] === FetchStatus.Ready) this.fetched.packages[pkg] = FetchStatus.Pending;
+        })
+
+        return promise;
  
+    }
+
+    private _errorHandler(e: any, packages: string[]): void {
+        this._fetchErrors++;
+
+        // set failed to done (allow only one retry)
+        packages.forEach(pkg => {
+            if (this.fetched.packages[pkg] === FetchStatus.Failed) this.fetched.packages[pkg] = FetchStatus.Done
+        });
+
+        if (e.statusCode === 404) {
+            // no need to retry for 404
+            packages.forEach(pkg => this.fetched.packages[pkg] = FetchStatus.Done);
+        } else {
+            // mark as failed
+            packages.forEach(pkg => {
+                if (this.fetched.packages[pkg] !== FetchStatus.Done) this.fetched.packages[pkg] = FetchStatus.Failed
+            });
+        }
+
+        console.log(packages.join(","), e.message);
     }
 
     // ready to concat all files
@@ -287,8 +348,8 @@ class NpmTrending {
 
         let date = new Date().toISOString().split("T")[0];
 
-        let infoDbFile = joinPath(NpmTrending.DATA_DIR, NpmTrending.INFO_DB_PREFIX + date + ".json");
-        let statDbFile = joinPath(NpmTrending.DATA_DIR, NpmTrending.STAT_DB_PREFIX + date + ".json");
+        let infoDbFile = joinPath(NpmTrending.DATA_DIR, NpmTrending.INFO_DB_PREFIX + ".json");
+        let statDbFile = joinPath(NpmTrending.DATA_DIR, NpmTrending.STAT_DB_PREFIX + ".json");
         ensureFileSync(infoDbFile);
         ensureFileSync(statDbFile);
 

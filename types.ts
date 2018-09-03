@@ -46,9 +46,19 @@ export interface PackageStat {
     [key: string]: number
 }
 
+export enum FetchStatus {
+    Ready,
+    InfoFetching,
+    InfoFetched,
+    InfoFetchFailed,
+    Pending,
+    Failed,
+    Done
+}
+
 export interface FetchHistory {
     packages: {
-        [key: string]: 1 | 0 
+        [key: string]: FetchStatus
     },
     count: number,
     total: number
