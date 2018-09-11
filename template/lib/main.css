@@ -81,7 +81,7 @@ header span.rightLink a:hover{
 
 /* sparkline */
 .pkgCard .sparkline {
-    height: 60px;
+    height: 100px;
 }
 
 .pkgTitle span{

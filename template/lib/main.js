@@ -24,8 +24,8 @@ const prettyNumber = (n) => {
     n = Math.abs(n);
     let m = (n / Math.pow(10, 6)).toFixed(2);
     let k = (n / Math.pow(10, 3)).toFixed(2);
-    if ( +m > 1) {
-        return `${prefix * m}m`; 
+    if (+m > 1) {
+        return `${prefix * m}m`;
     } else if (+k > 1) {
         return `${prefix * k}k`;
     } else {
@@ -50,7 +50,7 @@ const renderPkg = (pkg, category) => {
 
 // for each column
 const COLUMN_TEMPLATE = (category, data) => `
-<article>
+<article class="${category.id}">
   <div class="catHeader" style="background-color: #33a1d6;">${category.title} @ ${prettyDate(category.date)}</div>
   ${
     data.map(pkg => `
@@ -129,8 +129,8 @@ ready(() => {
             document.getElementsByTagName("header")[0].innerHTML = HEADER_TEMPLATE(data);
             document.getElementById("content").innerHTML = CONTENT_TEMPLATE(data);
 
-            // draw the sparklines
-            return drawSparkline(data.dayTop.map(pkg => pkg.name).concat(data.dayChange.map(pkg => pkg.name)).concat(data.dayInc.map(pkg => pkg.name)));
+            // draw the sparkline
+            return drawSparkline(data);
         })
         .catch(function (error) {
             console.log(error);
@@ -138,41 +138,46 @@ ready(() => {
         });
 });
 
+function getPastWeekDate(date) {
+    let res = [];
+    let endDate = new Date(date);
+    endDate.setDate(endDate.getDate() - 7);
+    date = new Date(date);
+    while (date > endDate) {
+        res.push(date.toISOString().split("T")[0]);
+        date.setDate(date.getDate() - 1);
+    }
 
-function drawSparkline(packages) {
-    let scopedPkg = packages.filter(pkg => pkg.indexOf("/") > -1);
-    let otherPackages = packages.filter(pkg => pkg.indexOf("/") === -1);
-    let prefix = "https://api.npmjs.org/downloads/range/last-week/";
-    return axios.all([
-            axios.get(`${prefix}${otherPackages.join(",")}`),
-            ...scopedPkg.map(pkg => axios.get(`${prefix}${pkg}`))
-        ])
-        .then(axios.spread(function (data, ...individualPackages) {
-            let stats = data.data;
-            individualPackages.forEach(data => {
-                let stat = data.data;
-                stats[stat.package] = stat;
-            })
+    return res;
+}
 
-            // draw for each pkg with data
-            packages.forEach(pkg => {
-                if (!stats[pkg]) return;
-                let container = document.querySelector(`.sparkline[data-pkg="${pkg}"]`);
-                if (container) {
-                    let sparkline = new Sparkline(container, {
-                        lineColor: "#8956FF",
-                        minColor:"blue",
-                        maxColor:"green",
-                        endColor: null,
-                        dotRadius: 3
-                    });
-                    sparkline.draw(stats[pkg].downloads.map(d => d.downloads));
-                }
-            });
-        }))
-        .catch(error => {
-            console.log(error);
-        })
+
+function drawSparkline(data) {
+    let options = {
+        axisX: {
+            labelInterpolationFnc: function (value) {
+                return new Date(value).toDateString().split(" ")[0];
+            }
+        },
+        axisY: {
+            labelInterpolationFnc: function (value) {
+                return prettyNumber(value);
+            }
+        }
+    };
+
+    function renderSparkline(pkg, cat) {
+        let container = document.querySelector(`.${cat} .sparkline[data-pkg="${pkg.name}"]`);
+        if (container) new Chartist.Line(container, {
+            labels: getPastWeekDate(theDate),
+            series: [pkg.history]
+        }, options);
+    }
+
+
+    data.dayTop.forEach(pkg => renderSparkline(pkg, "top"));
+    data.dayInc.forEach(pkg => renderSparkline(pkg, "inc"));
+    data.dayChange.forEach(pkg => renderSparkline(pkg, "change"));
 }
 
 function goTo(d) {
