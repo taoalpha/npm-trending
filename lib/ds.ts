@@ -7,6 +7,7 @@
 import { readJsonSync } from "fs-extra";
 import { join } from "path";
 import {PackageInfo, PackageStat} from "../types";
+import { DateHelper } from "./helpers";
 
 interface GetTopOptions {
     minDownload?: number,
@@ -36,8 +37,11 @@ interface GetTopKResponse {
 }
 
 export class Analyze {
-    private today : string = new Date().toISOString().split("T")[0];
     private infoDb : {
+        [key: string]: PackageInfo
+    } = {};
+
+    private prevInfoDb: {
         [key: string]: PackageInfo
     } = {};
 
@@ -45,12 +49,26 @@ export class Analyze {
         [key: string]: PackageStat
     } = {};
 
+    private prevStatDb: {
+        [key: string]: PackageStat
+    } = {};
+
     private keys: string[] = [];
+    private prevKeys: string[] = [];
    
-    constructor(date?: string) {
-        this.statDb = readJsonSync(join(__dirname, "../data/stat-" + (date || this.today) + ".json"));
-        this.infoDb = readJsonSync(join(__dirname, "../data/info-" + (date || this.today) + ".json"));
+    constructor(private date: string = DateHelper.today) {
+        let prevDate = DateHelper.add(date, -1);
+        this.statDb = readJsonSync(join(__dirname, "../data/stat-" + date + ".json"));
+        this.prevStatDb = readJsonSync(join(__dirname, "../data/stat-" + prevDate + ".json"));
+        this.infoDb = readJsonSync(join(__dirname, "../data/info-" + date + ".json"));
+        this.prevInfoDb = readJsonSync(join(__dirname, "../data/info-" + prevDate + ".json"));
         this.keys = Object.keys(this.statDb);
+        this.prevKeys = Object.keys(this.prevStatDb);
+    }
+
+    getDiff() : Package[] {
+        let newPackages = this.keys.filter(key => !this.prevStatDb[key]);
+        return newPackages.map(pkg => this._fillInPackage({name: pkg, stat: this.statDb[pkg]}, this.date));
     }
 
     total(): number {
@@ -134,3 +152,4 @@ export class Analyze {
 }
 
 // console.log(new Analyze().getTop(20, "2018-09-08", { minDownload: 100 }).top.map(pkg => pkg.name + "-" + pkg.change).join(","))
+// console.log(new Analyze("2018-09-11").getDiff().map(pkg => pkg.name).join(","))

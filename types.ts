@@ -35,6 +35,8 @@ export interface PackageInfo {
     author?: Maintainer,
     repository?: Repository,
     description?: string,
+    deps?: string[],
+    devDeps?: string[],
     homepage?: string,
     keywords?: string[],
     license?: string,

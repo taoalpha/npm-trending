@@ -8,6 +8,7 @@
 import { writeJsonSync, ensureFileSync } from "fs-extra";
 import { Analyze, Package } from "./ds";
 import { join } from "path";
+import { DateHelper } from "./helpers";
 
 interface DailyReport {
     date: string,
@@ -16,6 +17,7 @@ interface DailyReport {
     dayInc: Package[];
     dayChange: Package[];
     dayTop: Package[];
+    dayNew?: Package[];
 }
 
 
@@ -41,6 +43,11 @@ export class Generator {
             dayChange: topChange,
             dayTop:top
         };
+
+        // dayNew added after 09/05
+        if (DateHelper.compare(date, "2018-09-05") === 1) {
+            dayData.dayNew = this.analyze.getDiff()
+        }
 
         let filePath = join(Generator.REPORT_DIR, "pkg-" + date + ".json");
 

@@ -122,7 +122,7 @@ class NpmTrending {
         // update seed
         let seed = "";
         if (this.queue.length) seed += this.queue.join(",");
-        else seed = Object.keys(this.fetched.packages).join(",");  // default seed: will be used if no queue, it will be used for next day's initial fetch, the idea is all packages previous fetched should be included at least :)
+        else seed = Object.keys(this.statDb).join(",");  // default seed: will be used if no queue, it will be used for next day's initial fetch, the idea is all packages previous fetched should be included at least :)
         writeFileSync(NpmTrending.SEED_FILE, seed, "utf-8");
 
         // update message
@@ -198,11 +198,16 @@ class NpmTrending {
                     let versions = pkg.versions && Object.keys(pkg.versions).sort((a, b) => a.localeCompare(b));
                     if (versions && versions.length >= 1) {
                         let latest = pkg.versions[versions[versions.length - 1]];
+
+                        // store deps and devDeps into info
+                        this.infoDb[pkg.name].deps = Object.keys(latest.dependencies || {});
+                        this.infoDb[pkg.name].devDeps = Object.keys(latest.devDependencies || {});
+
                         // add deps to the queue if its not in the list
-                        Object.keys(latest.dependencies || {}).forEach(dep => {
+                        this.infoDb[pkg.name].deps.forEach(dep => {
                             if (typeof this.fetched.packages[dep] === "undefined") this.queue.push(dep);
                         });
-                        Object.keys(latest.devDependencies || {}).forEach(dep => {
+                        this.infoDb[pkg.name].devDeps.forEach(dep => {
                             if (typeof this.fetched.packages[dep] === "undefined") this.queue.push(dep);
                         });
                     }

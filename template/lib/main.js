@@ -35,7 +35,7 @@ const prettyNumber = (n) => {
 
 const HEADER_TEMPLATE = data => `
 <a href="https://github.com/taoalpha/npm-trending/" target="_blank">${data.title}</a> @ ${prettyDate(data.date)}
-<span>(total : ${data.total})</span>
+<span class="total-package">(total : ${data.total})</span>
 `;
 
 const renderPkg = (pkg, category) => {
@@ -53,7 +53,7 @@ const doesShowBefore = (pkg, category, data) => {
     if (category === "top") return false;
     if (category === "inc") return data.dayTop.some(p => p.name === pkg.name);
     if (category === "change") return data.dayTop.some(p => p.name === pkg.name) || data.dayInc.some(p => p.name === pkg.name);
-
+    return false;
 }
 
 // for each column
@@ -137,17 +137,27 @@ ready(() => {
             document.getElementsByTagName("header")[0].innerHTML = HEADER_TEMPLATE(data);
             document.getElementById("content").innerHTML = CONTENT_TEMPLATE(data);
 
+            // render modals
+            renderModals(data);
+
             // draw the sparkline
             drawSparkline(data);
 
             // bind event
             Array.prototype.slice.call(document.querySelectorAll(".pkgTitle")).forEach(el =>
-                el.addEventListener("click", (e) => {
+                el.addEventListener("click", () => {
                     let pkgCard = el.parentNode;
                     if (pkgCard.classList.contains("collapse")) pkgCard.classList.remove("collapse");
                     else pkgCard.classList.add("collapse");
                 })
             );
+
+            // bind click on total packages 
+            // render a modal to show new packages
+            // toggle the visibility
+            document.querySelector(".total-package").addEventListener("click", () => {
+                if (data.dayNew && data.dayNew.length) toggleModal();
+            });
         })
         .catch(function (error) {
             console.log(error);
@@ -195,6 +205,7 @@ function drawSparkline(data) {
     data.dayTop.forEach(pkg => renderSparkline(pkg, "top"));
     data.dayInc.forEach(pkg => renderSparkline(pkg, "inc"));
     data.dayChange.forEach(pkg => renderSparkline(pkg, "change"));
+    if (data.dayNew && data.dayNew.length) data.dayNew.forEach(pkg => renderSparkline(pkg, "new"));
 }
 
 function goTo(d) {
@@ -211,6 +222,23 @@ function goTo(d) {
     document.location = "?date=" + newDate.toISOString().split("T")[0];
 }
 
+
+// render modals
+// render new packages modal
+function renderNewPackageModal(data) {
+    if (!data.dayNew || !data.dayNew.length) return;
+    document.querySelector(".total-package").style.cursor = "pointer";
+    document.querySelector("#modals .content-container").innerHTML += `${COLUMN_TEMPLATE({
+        id: "new",
+        title: "New Packages Fetched",
+        date: data.date
+    }, data.dayNew, data)}`;
+}
+
+function renderModals(data) {
+    renderNewPackageModal(data);
+}
+
 // left -> previous, right -> next
 document.addEventListener("keyup", function (e) {
     if (e.keyCode === 37) {
@@ -218,8 +246,38 @@ document.addEventListener("keyup", function (e) {
         goTo(-1);
         direction = -1;
     } else if (e.keyCode === 39) {
+        if (new Date(theDate) > new Date()) return;
         // right
         goTo(1)
         direction = 1;
     }
 });
+
+document.querySelector(".navigation .fa-chevron-circle-left").addEventListener("click", () => {
+    goTo(-1);
+    direction = -1;
+});
+
+document.querySelector(".navigation .fa-chevron-circle-right").addEventListener("click", () => {
+    goTo(1);
+    direction = 1;
+});
+
+
+if (new Date(new Date().toISOString().split("T")[0]) - new Date(theDate) <= 1000 * 60 * 60 * 24) {
+    document.querySelector(".navigation .fa-chevron-circle-right").classList.add("hide");
+};
+
+function toggleModal() {
+    let modals = document.getElementById("modals");
+    if (modals.classList.contains("hide")) {
+        modals.classList.remove("hide");
+        modals.classList.add("show");
+    } else {
+        modals.classList.add("hide");
+        modals.classList.remove("show");
+    }
+}
+
+// bind close on modals' close button
+document.querySelector("#modals .fa-close").addEventListener("click", toggleModal);
