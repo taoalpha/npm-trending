@@ -26,6 +26,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chartist/0.11.0/chartist.min.js"></script>
     <link rel="stylesheet" href="./lib/main.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <!-- requirejs needs to be loaded later than any other scripts, but before our main -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js"></script>
     </head>
     
     <body>
@@ -40,6 +42,7 @@
         <div class="content-container"></div>
       </div>
       <script src="./lib/main.js"></script>
+      <script>requirejs(["dist/lib/main"]);</script>
     </body>
     
     </html>

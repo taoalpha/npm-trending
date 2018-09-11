@@ -1,4 +1,9 @@
 export class DateHelper {
+    static move(date: Date, days: number): Date {
+        date.setDate(date.getDate() + days);
+        return date;
+    }
+
     static add(date: string, days: number): string {
         let d = new Date(date);
         d.setDate(d.getDate() + days);
@@ -12,6 +17,10 @@ export class DateHelper {
         if (dA === dB) return 0;
         if (dA > dB) return 1;
         else return -1;
+    }
+
+    static getDateString(date: string | Date) : string {
+        return new Date(date).toUTCString().replace(" 00:00:00 GMT", "");
     }
 
     static today: string = new Date().toISOString().split("T")[0];

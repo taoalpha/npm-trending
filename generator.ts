@@ -5,7 +5,7 @@
  */
 
 
-import { copySync } from "fs-extra";
+import { copySync, writeFileSync, readFileSync } from "fs-extra";
 import { Generator } from "./lib/generator";
 import { join } from "path";
 

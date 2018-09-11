@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "fetch": "ts-node index.ts",
-    "generate": "ts-node generator.ts",
+    "generate": "ts-node generator.ts && npm run compile",
+    "compile": "sass dist/lib/main.scss dist/lib/main.css && tsc --out dist/lib/main.js dist/lib/main.ts --lib 'dom, es2017' --skipLibCheck --target ES5 --module amd",
+    "serve": "http-server ./dist",
     "deploy": "gh-pages -d dist -a"
   },
   "author": "",
@@ -20,11 +22,13 @@
   },
   "devDependencies": {
     "@types/bluebird": "^3.5.24",
+    "@types/chartist": "^0.9.42",
     "@types/fs-extra": "^5.0.4",
     "@types/node": "^10.9.4",
     "@types/request-promise": "^4.1.42",
     "gh-pages": "^1.2.0",
     "handlebars": "^4.0.5",
+    "sass": "^1.13.3",
     "ts-node": "^7.0.1",
     "typescript": "^3.0.3"
   }
