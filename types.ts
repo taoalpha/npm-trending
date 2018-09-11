@@ -51,9 +51,11 @@ export enum FetchStatus {
     InfoFetching,
     InfoFetched,
     InfoFetchFailed,
+    InfoFetchOver,
     Pending,
     Failed,
-    Done
+    Done,
+    Over
 }
 
 export interface FetchHistory {

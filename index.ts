@@ -50,8 +50,24 @@ class NpmTrending {
 
         // emit stats after run
         process.on('exit', (code) => {
+            // get stats on each status
+            let stats = Object.keys(this.fetched.packages).reduce((prev, cur) => {
+                prev[this.fetched.packages[cur]] = prev[this.fetched.packages[cur]] || 0;
+                prev[this.fetched.packages[cur]]++;
+                return prev;
+            }, {});
             console.log(`About to exit with code: ${code}`);
-            console.log(`so far, we have fetched ${this.fetched.total}, this time, we fetched ${this.fetched.total - this._lastFetched}, error: ${this._fetchErrors}`);
+            console.log(`so far, we have fetched ${this.fetched.total} (${Object.keys(this.fetched.packages).length}), this time, we fetched ${this.fetched.total - this._lastFetched}, error: ${this._fetchErrors}`);
+            console.log(`Among all fetched packages:
+                ${stats[FetchStatus.InfoFetching] || 0} is fetching info(expect to be 0),
+                ${stats[FetchStatus.InfoFetchFailed] || 0} failed to fetch info, pending retry(expect to be 0),
+                ${stats[FetchStatus.InfoFetched] || 0} fetched info successfully,
+                ${stats[FetchStatus.InfoFetchOver] || 0} failed to fetch info,
+                ${stats[FetchStatus.Pending] || 0} is fetching stat (expect to be 0),
+                ${stats[FetchStatus.Failed] || 0} failed to fetch stat, pending retry (expect to be 0),
+                ${stats[FetchStatus.Done] || 0} fetched stat successfully,
+                ${stats[FetchStatus.Over] || 0} failed to fetch stat after retry,
+                `);
         });
     }
 
@@ -229,6 +245,9 @@ class NpmTrending {
         // skip fetched
         if (this.fetched.packages[pkg] == FetchStatus.InfoFetched) return Promise.resolve({});
 
+        // skip over
+        if (this.fetched.packages[pkg] == FetchStatus.InfoFetchOver) return Promise.resolve({});
+
         let promise = rp({uri: "https://registry.npmjs.org/" + pkg, json: true})
         .then(res => {
             this.fetched.packages[pkg] === FetchStatus.InfoFetched;
@@ -236,7 +255,7 @@ class NpmTrending {
         })
         .catch(e => {
             // allow one retry
-            if (this.fetched.packages[pkg] === FetchStatus.InfoFetchFailed) this.fetched.packages[pkg] = FetchStatus.InfoFetched;
+            if (this.fetched.packages[pkg] === FetchStatus.InfoFetchFailed) this.fetched.packages[pkg] = FetchStatus.InfoFetchOver;
             else this.fetched.packages[pkg] === FetchStatus.InfoFetchFailed;
             this._fetchErrors++;
             console.log(e.message);
@@ -258,6 +277,9 @@ class NpmTrending {
         // skip finished ones
         if (this.fetched.packages[pkg] === FetchStatus.Done) return Promise.resolve({});
 
+        // skip over
+        if (this.fetched.packages[pkg] === FetchStatus.Over) return Promise.resolve({});
+
         let promise = rp({uri: "https://api.npmjs.org/downloads/range/last-week/" + pkg, json: true})
             .then(res => {
                 // mark as fetched
@@ -270,8 +292,8 @@ class NpmTrending {
                 return {[pkg]: {error: e}};
             });
 
-        // set ready to pending
-        if (this.fetched.packages[pkg] === FetchStatus.Ready) this.fetched.packages[pkg] = FetchStatus.Pending;
+        // set to pending
+        this.fetched.packages[pkg] = FetchStatus.Pending;
 
         return promise;
     }
@@ -279,7 +301,9 @@ class NpmTrending {
     // fetch stats for multiple packages at once
     bulkFetchPkgStat(packages: string[] = []) : Promise<{[key: string]: ServerPkgStat}> {
         // remove fetched and fetching
-        packages = packages.filter(pkg => this.fetched.packages[pkg] !== FetchStatus.Done && this.fetched.packages[pkg] !== FetchStatus.Pending);
+        packages = packages.filter(pkg => this.fetched.packages[pkg] !== FetchStatus.Done
+            && this.fetched.packages[pkg] !== FetchStatus.Over
+            && this.fetched.packages[pkg] !== FetchStatus.Pending);
 
         if (!packages.length) return Promise.resolve({all: {error: true}});
 
@@ -300,7 +324,7 @@ class NpmTrending {
 
         // set to Pending if its Ready
         packages.forEach(pkg => {
-            if (this.fetched.packages[pkg] === FetchStatus.Ready) this.fetched.packages[pkg] = FetchStatus.Pending;
+            this.fetched.packages[pkg] = FetchStatus.Pending;
         })
 
         return promise;
@@ -312,16 +336,16 @@ class NpmTrending {
 
         // set failed to done (allow only one retry)
         packages.forEach(pkg => {
-            if (this.fetched.packages[pkg] === FetchStatus.Failed) this.fetched.packages[pkg] = FetchStatus.Done
+            if (this.fetched.packages[pkg] === FetchStatus.Failed) this.fetched.packages[pkg] = FetchStatus.Over
         });
 
         if (e.statusCode === 404) {
             // no need to retry for 404
-            packages.forEach(pkg => this.fetched.packages[pkg] = FetchStatus.Done);
+            packages.forEach(pkg => this.fetched.packages[pkg] = FetchStatus.Over);
         } else {
             // mark as failed
             packages.forEach(pkg => {
-                if (this.fetched.packages[pkg] !== FetchStatus.Done) this.fetched.packages[pkg] = FetchStatus.Failed
+                if (this.fetched.packages[pkg] !== FetchStatus.Over) this.fetched.packages[pkg] = FetchStatus.Failed
             });
         }
 

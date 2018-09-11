@@ -141,10 +141,11 @@ ready(() => {
             drawSparkline(data);
 
             // bind event
-            Array.prototype.slice.call(document.querySelectorAll(".pkgCard")).forEach(el =>
+            Array.prototype.slice.call(document.querySelectorAll(".pkgTitle")).forEach(el =>
                 el.addEventListener("click", (e) => {
-                    if (el.classList.contains("collapse")) el.classList.remove("collapse");
-                    else el.classList.add("collapse");
+                    let pkgCard = el.parentNode;
+                    if (pkgCard.classList.contains("collapse")) pkgCard.classList.remove("collapse");
+                    else pkgCard.classList.add("collapse");
                 })
             );
         })
