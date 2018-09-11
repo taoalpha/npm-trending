@@ -9,6 +9,10 @@
  * Solution:
  *  - run same job multiple times and store all results
  *  - concatenate all results
+ * 
+ * 
+ * TODO:
+ * - record all packages not found (so we don't need to fetch it so frequently, based on our existing data, we should have quite a few)
  */
 
 import * as Promise from 'bluebird';
@@ -142,6 +146,7 @@ class NpmTrending {
         // terminate when no pkg in the queue
         // will happen when we almost fetched everything :)
         // TODO: not sure about the total number of packages we can fetch in a day
+        // from history data, we can fetch ~12k with what we have now, if we want to fetch more, we need new seed :)
         if (!this.queue.length || this.fetched.total > 100000) {
             // call it a day :)
             return this._concat();
@@ -244,7 +249,6 @@ class NpmTrending {
     }
 
     // fetch pkg stats
-    // TODO: optimize to use bulk queries
     fetchPkgStat(pkg: string): Promise<{[key: string]: ServerPkgStat}> {
         if (!pkg) return Promise.resolve({[pkg]: {error: true}});
 

@@ -94,8 +94,11 @@ export class Analyze {
 
             // topK
             for (let j = 0; j < K; j++) {
-                // if undefined, fill in
-                if (!topK[j]) topK[j] = swapPkg;
+                // if undefined, fill in and only fill in once
+                if (!topK[j]) {
+                    topK[j] = swapPkg;
+                    break;
+                }
  
                 // if current one is smaller than swapPkg, swap
                 if (topK[j][date] < swapPkg[date]) {
@@ -110,7 +113,10 @@ export class Analyze {
             if (!options.incThreshold || options.incThreshold < swapPkg.inc) {
                 for (let j = 0; j < K; j++) {
                     // if undefined, fill in
-                    if (!topKIncrease[j]) topKIncrease[j] = swapPkg;
+                    if (!topKIncrease[j]) {
+                        topKIncrease[j] = swapPkg;
+                        break;
+                    }
  
                     // if current one is smaller than swapPkg, swap
                     if (topKIncrease[j].inc < swapPkg.inc) {
@@ -126,7 +132,10 @@ export class Analyze {
             if (!options.changeThreshold || options.changeThreshold < swapPkg.change) {
                 for (let j = 0; j < K; j++) {
                     // if undefined, fill in
-                    if (!topKChange[j]) topKChange[j] = swapPkg;
+                    if (!topKChange[j]) {
+                        topKChange[j] = swapPkg;
+                        break;
+                    }
  
                     // if current one is smaller than swapPkg, swap
                     if (topKChange[j].change < swapPkg.change) {
