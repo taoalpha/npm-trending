@@ -17,7 +17,7 @@ while (date < endDate) {
 while (endDate < now) {
     date = new Date(endDate);
     generator = new Generator(endDate.toISOString().split("T")[0]);
-    date.setDate(endDate.getDate() - 5);
+    date.setDate(endDate.getDate() - 1);
     while (date < endDate) {
         generator.generate(date.toISOString().split("T")[0]);
         date.setDate(date.getDate() + 1);

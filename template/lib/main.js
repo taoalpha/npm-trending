@@ -144,7 +144,7 @@ function getPastWeekDate(date) {
     endDate.setDate(endDate.getDate() - 7);
     date = new Date(date);
     while (date > endDate) {
-        res.push(date.toISOString().split("T")[0]);
+        res.unshift(date.toISOString().split("T")[0]);
         date.setDate(date.getDate() - 1);
     }
 
@@ -156,7 +156,7 @@ function drawSparkline(data) {
     let options = {
         axisX: {
             labelInterpolationFnc: function (value) {
-                return new Date(value).toDateString().split(" ")[0];
+                return new Date(value).toUTCString().split(",")[0];
             }
         },
         axisY: {

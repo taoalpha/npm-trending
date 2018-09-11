@@ -12,7 +12,7 @@ import { join } from "path";
 let generator = new Generator();
 let endDate = new Date();
 let date = new Date();
-date.setDate(endDate.getDate() - 5);
+date.setDate(endDate.getDate() - 1);
 
 while (date < endDate) {
     generator.generate(date.toISOString().split("T")[0]);
