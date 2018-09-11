@@ -5,3 +5,5 @@ I will keep NPM trending as a serverless site, so some features require visitors
 2.1 [x] use data we collected (put history downloads, ~5 days to stat json)
 3. add `packages depend on this package` section for those packages listed in daily report: for those popular ones, may just list top 100 ?
 4. generate some diff reports on: new packages added, packages updated last day, etc
+5. [x] duplicated packages should be collapsed by default(or maybe link to where it is always)
+6. clean up the main.js code

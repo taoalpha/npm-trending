@@ -77,6 +77,21 @@ header span.rightLink a:hover{
     background-color: #fff;
     overflow: hidden;
     text-overflow: ellipsis;
+    cursor: pointer;
+}
+
+.pkgCard.collapse {
+    height: 50px;
+}
+
+.pkgCard.collapse .pkgDesc {
+    visibility: hidden;
+}
+.pkgCard.collapse .sparkline {
+    visibility: hidden;
+}
+.pkgCard.collapse .pkgInfo {
+    visibility: hidden;
 }
 
 /* sparkline */
@@ -87,6 +102,7 @@ header span.rightLink a:hover{
 .pkgTitle span{
     float: right;
     font-size: 15px;
+    line-height: 25px;
 }
 .pkgDesc {
     padding: 10px 0;

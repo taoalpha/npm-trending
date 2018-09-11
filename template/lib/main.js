@@ -48,13 +48,21 @@ const renderPkg = (pkg, category) => {
     }
 }
 
+// whether pkg already in previous list
+const doesShowBefore = (pkg, category, data) => {
+    if (category === "top") return false;
+    if (category === "inc") return data.dayTop.some(p => p.name === pkg.name);
+    if (category === "change") return data.dayTop.some(p => p.name === pkg.name) || data.dayInc.some(p => p.name === pkg.name);
+
+}
+
 // for each column
-const COLUMN_TEMPLATE = (category, data) => `
+const COLUMN_TEMPLATE = (category, data, _data) => `
 <article class="${category.id}">
   <div class="catHeader" style="background-color: #33a1d6;">${category.title} @ ${prettyDate(category.date)}</div>
   ${
     data.map(pkg => `
-        <div class="pkgCard">
+        <div class="pkgCard ${doesShowBefore(pkg, category.id, _data) ? "collapse" : "expand"}">
             <h3 class="pkgTitle">
                 <a href="https://www.npmjs.com/package/${pkg.name}" target="_blank">${pkg.name}</a>
                 ${renderPkg(pkg, category)}
@@ -84,17 +92,17 @@ ${COLUMN_TEMPLATE({
         id: "top",
         title: "Top Downloads",
         date: data.date
-    }, data.dayTop)}
+    }, data.dayTop, data)}
 ${COLUMN_TEMPLATE({
         id: "inc",
         title: "Top Increase Number",
         date: data.date
-    }, data.dayInc)}
+    }, data.dayInc, data)}
 ${COLUMN_TEMPLATE({
         id: "change",
         title: "Top Increase Percentage",
         date: data.date
-    }, data.dayChange)}
+    }, data.dayChange, data)}
 `;
 
 
@@ -130,7 +138,15 @@ ready(() => {
             document.getElementById("content").innerHTML = CONTENT_TEMPLATE(data);
 
             // draw the sparkline
-            return drawSparkline(data);
+            drawSparkline(data);
+
+            // bind event
+            Array.prototype.slice.call(document.querySelectorAll(".pkgCard")).forEach(el =>
+                el.addEventListener("click", (e) => {
+                    if (el.classList.contains("collapse")) el.classList.remove("collapse");
+                    else el.classList.add("collapse");
+                })
+            );
         })
         .catch(function (error) {
             console.log(error);
@@ -206,4 +222,3 @@ document.addEventListener("keyup", function (e) {
         direction = 1;
     }
 });
-
