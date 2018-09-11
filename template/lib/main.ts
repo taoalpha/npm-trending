@@ -3,7 +3,6 @@ console.log("Hi");
 declare let axios: any;
 declare let Chartist: any;
 
-import { ChartistStatic } from "Chartist";
 import { DateHelper } from "../../lib/helpers";
 
 class Helpers {
@@ -157,7 +156,7 @@ ${this.renderCategory({
 
         let renderSparkline = (pkg, cat) => {
             let container = document.querySelector(`.${cat} .sparkline[data-pkg="${pkg.name}"]`);
-            if (container) new (Chartist as ChartistStatic).Line(container, {
+            if (container) new (Chartist as any).Line(container, {
                 labels: this.getPastWeekDate(theDate),
                 series: [pkg.history]
             }, options);
