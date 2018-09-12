@@ -46,7 +46,7 @@ export class Generator {
 
         // dayNew added after 09/05
         if (DateHelper.compare(date, "2018-09-05") === 1) {
-            dayData.dayNew = this.analyze.getDiff()
+            dayData.dayNew = this.analyze.getDiff(date)
         }
 
         let filePath = join(Generator.REPORT_DIR, "pkg-" + date + ".json");

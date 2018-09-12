@@ -37,6 +37,7 @@ class Helpers {
     }
 
     static toggleClass(el, className) {
+        if (!el) return;
         if (el.classList.contains(className)) {
             el.classList.remove(className);
         } else {
@@ -49,12 +50,21 @@ class Helpers {
 
 
 class NpmTrending {
-    constructor(private data: any) {}
+    private modals = document.getElementById("modals");
+    private modalContentContainer = document.querySelector("#modals .content-container");
+    private packages: any = {};
+
+    constructor(private data: any, private date: string = DateHelper.today) {
+        data.dayTop.forEach(pkg => this.packages[pkg.name] = pkg);
+        data.dayChange.forEach(pkg => this.packages[pkg.name] = pkg);
+        data.dayInc.forEach(pkg => this.packages[pkg.name] = pkg);
+        if (data.dayNew) data.dayNew.forEach(pkg => this.packages[pkg.name] = pkg);
+    }
 
     renderHeader(data: any) {
         return `
 <a href="https://github.com/taoalpha/npm-trending/" target="_blank">${data.title}</a> @ ${DateHelper.getDateString(data.date)}
-<span class="total-package">(total : ${data.total})</span>
+<span class="total-package ${data.dayNew && data.dayNew.length ? "pointer" : ""}">(total : ${data.total})</span>
 `;
     }
 
@@ -87,7 +97,7 @@ class NpmTrending {
                 ${this.renderPkg(pkg, category)}
             </h3>
             <div class="pkgDesc">${pkg.description}</div>
-            <div class="sparkline" data-pkg="${pkg.name}"></div>
+            <div class="sparkline download-history" data-pkg="${pkg.name}"></div>
             <div class="pkgInfo">
                 <span>
                   ${pkg.author ? `<a target="_blank" href="https://www.npmjs.com/~${pkg.author.name}">` : ""}<i class="fa fa-user"> ${pkg.author && pkg.author.name || "Unknown"}</i>${pkg.author ? "</a>" : ""}
@@ -97,7 +107,8 @@ class NpmTrending {
                   <a href="${pkg.homepage}" target="_blank"><i class="fa fa-link"> homepage</i></a>
                 </span>
                 ` : ""}
-                <span><i class="fa fa-download"> ${Helpers.prettyNumber(pkg[category.date])} (${category.date})</i></span>
+                <span><i class="fa fa-download"> ${Helpers.prettyNumber(pkg[category.date])}</i></span>
+                ${pkg.versions && category.id !== "new" ? `<span class="fa fa-history" data-pkg="${pkg.name}"></span>` : ""}
             </div>
             <div class="share"></div>
         </div>
@@ -127,6 +138,48 @@ ${this.renderCategory({
 `;
     }
 
+    renderVersionHistory(pkgName) {
+        let pkg = this.packages[pkgName];
+        if (!pkg || !pkg.versions) return;
+
+        let template = `<div class="version-history">
+                <h2>${pkg.name} version history</h2>
+                <div></div>
+            </div>`;
+
+        this.modalContentContainer.innerHTML = template;
+
+        // draw version-history
+        let keys = Object.keys(pkg.versions).filter(key => !(key === "created" || key === "modified"));
+
+        let versionContainer = document.querySelector(".version-history div");
+        new (Chartist as any).Line(versionContainer, {
+            labels: keys.map(key => pkg.versions[key]),
+            series: [keys.map(value => {
+                // convert versions into float
+                let parts = value.split(".");
+                return parseFloat(parts[0] + "." + parts.slice(1).join(""));
+            })]
+        }, {
+                showLine: false,
+                axisX: {
+                    labelInterpolationFnc: function (value) {
+                        let d = new Date(value);
+                        return `${d.getMonth() + 1}/${d.getDate()}/${(d.getFullYear() + "").substr(2)}`;
+                    }
+                },
+                axisY: {
+                    labelInterpolationFnc: function (value) {
+                        // convert it back to version
+                        return "v-" + value
+                    }
+                }
+            });
+
+        // show modal
+        NpmTrending.toggleModal();
+    }
+
     getPastWeekDate(date) {
         let res = [];
         let endDate = new Date(DateHelper.add(date, -7));
@@ -139,50 +192,86 @@ ${this.renderCategory({
         return res;
     }
 
-
-    drawSparkline(data) {
-        let options = {
-            axisX: {
-                labelInterpolationFnc: function (value) {
-                    return new Date(value).toUTCString().split(",")[0];
-                }
-            },
-            axisY: {
-                labelInterpolationFnc: function (value) {
-                    return Helpers.prettyNumber(value);
+    renderSparkline(el, pkg) {
+        // draw download-history
+        if (!el) return ;
+        new (Chartist as any).Line(el, {
+            labels: this.getPastWeekDate(this.date),
+            series: [pkg.history]
+        }, {
+                axisX: {
+                    labelInterpolationFnc: function (value) {
+                        return new Date(value).toUTCString().split(",")[0];
+                    }
+                },
+                axisY: {
+                    labelInterpolationFnc: function (value) {
+                        return Helpers.prettyNumber(value);
+                    }
                 }
             }
-        };
+        );
+    }
+
+    drawSparkline(data) {
 
         let renderSparkline = (pkg, cat) => {
-            let container = document.querySelector(`.${cat} .sparkline[data-pkg="${pkg.name}"]`);
+            // draw download-history
+            let container = document.querySelector(`.${cat} .download-history[data-pkg="${pkg.name}"]`);
             if (container) new (Chartist as any).Line(container, {
                 labels: this.getPastWeekDate(theDate),
                 series: [pkg.history]
-            }, options);
+            }, {
+                    axisX: {
+                        labelInterpolationFnc: function (value) {
+                            return new Date(value).toUTCString().split(",")[0];
+                        }
+                    },
+                    axisY: {
+                        labelInterpolationFnc: function (value) {
+                            return Helpers.prettyNumber(value);
+                        }
+                    }
+                }
+            );
         }
 
 
         data.dayTop.forEach(pkg => renderSparkline(pkg, "top"));
         data.dayInc.forEach(pkg => renderSparkline(pkg, "inc"));
         data.dayChange.forEach(pkg => renderSparkline(pkg, "change"));
-        if (data.dayNew && data.dayNew.length) data.dayNew.forEach(pkg => renderSparkline(pkg, "new"));
     }
 
     // render modals
     // render new packages modal
-    renderNewPackageModal(data) {
+    renderNewPackage(data = this.data) {
         if (!data.dayNew || !data.dayNew.length) return;
-        (document.querySelector(".total-package") as HTMLElement).style.cursor = "pointer";
-        document.querySelector("#modals .content-container").innerHTML += `<div id="new-package-modal">${this.renderCategory({
+        this.modalContentContainer.innerHTML += `<div id="new-package-modal">${this.renderCategory({
             id: "new",
             title: `New Packages Fetched (${data.dayNew.length} added)`,
             date: data.date
         }, data.dayNew, data)}</div>`;
+
+        // draw sparkline and update event binding
+        if (data.dayNew && data.dayNew.length) data.dayNew.forEach(pkg => {
+            this.renderSparkline(document.querySelector(`#modals .new .download-history[data-pkg="${pkg.name}"]`), pkg);
+        });
+
+        // show modal
+        NpmTrending.toggleModal();
+
+        // bind event on new cards
+        NpmTrending.bindTitleEvent(document.querySelectorAll("#new-package-modal .pkgTitle"));
     }
 
-    renderModals(data) {
-        this.renderNewPackageModal(data);
+    static bindTitleEvent(els: any) {
+        // bind event
+        Array.prototype.slice.call(els).forEach(el =>
+            el.addEventListener("click", () => {
+                let pkgCard = el.parentNode;
+                Helpers.toggleClass(pkgCard, "collapse");
+            })
+        );
     }
 
     static goTo(d: number = -1) {
@@ -221,32 +310,31 @@ Helpers.ready(() => {
             // update title
             document.title = `${data.title} @ ${DateHelper.getDateString(data.date)}`;
 
-            let npmTrending = new NpmTrending(data);
+            let npmTrending = new NpmTrending(data, theDate);
 
             // render header and content
             document.getElementsByTagName("header")[0].innerHTML = npmTrending.renderHeader(data);
             document.getElementById("content").innerHTML = npmTrending.renderContent(data);
 
-            // render modals
-            npmTrending.renderModals(data);
-
             // draw the sparkline
             npmTrending.drawSparkline(data);
 
-            // bind event
-            Array.prototype.slice.call(document.querySelectorAll(".pkgTitle")).forEach(el =>
-                el.addEventListener("click", () => {
-                    let pkgCard = el.parentNode;
-                    if (pkgCard.classList.contains("collapse")) pkgCard.classList.remove("collapse");
-                    else pkgCard.classList.add("collapse");
-                })
-            );
+            // bind event on all cards in content
+            NpmTrending.bindTitleEvent(document.querySelectorAll("#content .pkgTitle"));
 
             // bind click on total packages 
             // render a modal to show new packages
             // toggle the visibility
             document.querySelector(".total-package").addEventListener("click", () => {
-                if (data.dayNew && data.dayNew.length) NpmTrending.toggleModal();
+                npmTrending.renderNewPackage();
+            });
+
+            // bind on history icon
+            Array.prototype.slice.call(document.querySelectorAll(".pkgInfo .fa-history")).forEach(el => {
+                let pkgName = el.getAttribute("data-pkg");
+                el.addEventListener("click", () => {
+                    npmTrending.renderVersionHistory(pkgName);
+                });
             });
         })
         .catch(function (error) {

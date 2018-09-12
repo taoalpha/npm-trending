@@ -38,7 +38,9 @@ jobs:
           key: v1-dependencies-{{ checksum "package.json" }}
 
       # run fetch
-      - run: yarn run fetch
+      - run:
+          command: yarn run fetch
+          no_output_timeout: 6m
 
       # set committer
       - run: git config --global user.email "CircleCI@CircleCI.com"

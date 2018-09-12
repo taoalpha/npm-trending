@@ -22,6 +22,7 @@ export interface Package {
     author?: string,
     status?: string,
     history?: number[],
+    versions?: any,
     day?: string,
     download?: number,
     stats?: PackageStat,
@@ -70,9 +71,9 @@ export class Analyze {
     }
 
     // get new packages fetched compared to previous day
-    getDiff(): Package[] {
+    getDiff(date: string = this.date): Package[] {
         let newPackages = this.keys.filter(key => !this.prevStatDb[key]);
-        return newPackages.map(pkg => this._fillInPackage({ name: pkg, stat: this.statDb[pkg] }, this.date));
+        return newPackages.map(pkg => this._fillInPackage({ name: pkg, stat: this.statDb[pkg] }, date));
     }
 
     getPkgWithMostVersions(K: number): Package[] {
@@ -178,12 +179,18 @@ export class Analyze {
             })
         }
 
+        // add versions
+        pkgToAdd.versions = this.infoDb[pkg.name].time || {};
+
         return pkgToAdd as Package;
     }
 
     getTop(K: number, date: string, options: GetTopOptions): GetTopKResponse {
-        let packages: Package[] = Object.keys(this.statDb).reduce((acc, key) => {
-            if (!options.minDownload || this.statDb[key][date] > options.minDownload) acc.push(this._fillInPackage({ name: key, stat: this.statDb[key] }, date));
+        let packages: Package[] = this.keys.reduce((acc, key) => {
+            if (!options.minDownload || this.statDb[key][date] > options.minDownload) {
+                let pkgToAdd = this._fillInPackage({ name: key, stat: this.statDb[key] }, date);
+                acc.push(pkgToAdd);
+            }
             return acc;
         }, []);
 

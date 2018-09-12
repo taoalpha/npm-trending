@@ -1,8 +1,6 @@
 node_modules
 *.log
 dist
-generator.js
-dep.js
 yarn.lock
 .tmp
 package-lock.json

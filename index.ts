@@ -67,6 +67,7 @@ class NpmTrending {
                 ${stats[FetchStatus.Failed] || 0} failed to fetch stat, pending retry (expect to be 0),
                 ${stats[FetchStatus.Done] || 0} fetched stat successfully,
                 ${stats[FetchStatus.Over] || 0} failed to fetch stat after retry,
+                ${this.queue.length} pkg in our current queue
                 `);
         });
     }
@@ -203,12 +204,12 @@ class NpmTrending {
                         this.infoDb[pkg.name].deps = Object.keys(latest.dependencies || {});
                         this.infoDb[pkg.name].devDeps = Object.keys(latest.devDependencies || {});
 
-                        // add deps to the queue if its not in the list
+                        // add deps to the queue if its not in the list or not finished during previous fetches
                         this.infoDb[pkg.name].deps.forEach(dep => {
-                            if (typeof this.fetched.packages[dep] === "undefined") this.queue.push(dep);
+                            if (typeof this.fetched.packages[dep] === "undefined" || [FetchStatus.Done, FetchStatus.Over].indexOf(this.fetched.packages[dep]) === -1) this.queue.push(dep);
                         });
                         this.infoDb[pkg.name].devDeps.forEach(dep => {
-                            if (typeof this.fetched.packages[dep] === "undefined") this.queue.push(dep);
+                            if (typeof this.fetched.packages[dep] === "undefined" || [FetchStatus.Done, FetchStatus.Over].indexOf(this.fetched.packages[dep]) === -1) this.queue.push(dep);
                         });
                     }
                 });

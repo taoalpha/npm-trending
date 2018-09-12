@@ -17,6 +17,10 @@ html, body {
     color: red;
 }
 
+.pointer {
+    cursor: pointer;
+}
+
 .show {
     visibility: visible;
 }
@@ -129,6 +133,7 @@ header {
         color: #aaa;
         margin-right: 10px;
     }
+
 }
 
 
@@ -192,6 +197,7 @@ header {
         right: 20px;
         font-size: 1.2rem;
         cursor: pointer;
+        padding: 10px;
     }
 
     .content-container {
@@ -213,6 +219,19 @@ header {
         
         article {
             border-right: none;
+        }
+    }
+
+    // version-history chart modal
+    .version-history {
+        text-align: center;
+        width: 90%;
+        margin: 0 auto;
+        color: white;
+
+        div {
+            height: 150px;
+            background: white;
         }
     }
 }
