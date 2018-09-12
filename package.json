@@ -27,7 +27,7 @@
     "@types/request-promise": "^4.1.42",
     "gh-pages": "^1.2.0",
     "handlebars": "^4.0.5",
-    "sass": "^1.13.3",
+    "sass": "^1.13.4",
     "ts-node": "^7.0.1",
     "typescript": "^3.0.3"
   }
