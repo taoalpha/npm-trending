@@ -6,7 +6,7 @@
 
 import { readJsonSync } from "fs-extra";
 import { join } from "path";
-import {PackageInfo, PackageStat} from "../types";
+import { PackageInfo, PackageStat } from "../types";
 import { DateHelper } from "./helpers";
 
 interface GetTopOptions {
@@ -27,6 +27,9 @@ export interface Package {
     stats?: PackageStat,
     inc?: number,
     change?: number,
+    numVersions?: number,
+    created?: string,
+    modified?: string,
     toJSON?: () => any
 }
 
@@ -37,7 +40,7 @@ interface GetTopKResponse {
 }
 
 export class Analyze {
-    private infoDb : {
+    private infoDb: {
         [key: string]: PackageInfo
     } = {};
 
@@ -45,7 +48,7 @@ export class Analyze {
         [key: string]: PackageInfo
     } = {};
 
-    private statDb : {
+    private statDb: {
         [key: string]: PackageStat
     } = {};
 
@@ -55,7 +58,7 @@ export class Analyze {
 
     private keys: string[] = [];
     private prevKeys: string[] = [];
-   
+
     constructor(private date: string = DateHelper.today) {
         let prevDate = DateHelper.add(date, -1);
         this.statDb = readJsonSync(join(__dirname, "../data/stat-" + date + ".json"));
@@ -66,9 +69,68 @@ export class Analyze {
         this.prevKeys = Object.keys(this.prevStatDb);
     }
 
-    getDiff() : Package[] {
+    // get new packages fetched compared to previous day
+    getDiff(): Package[] {
         let newPackages = this.keys.filter(key => !this.prevStatDb[key]);
-        return newPackages.map(pkg => this._fillInPackage({name: pkg, stat: this.statDb[pkg]}, this.date));
+        return newPackages.map(pkg => this._fillInPackage({ name: pkg, stat: this.statDb[pkg] }, this.date));
+    }
+
+    getPkgWithMostVersions(K: number): Package[] {
+        return this.keys.filter(pkg => this.infoDb[pkg].time).sort((pkgA, pkgB) => {
+            return Object.keys(this.infoDb[pkgB].time).length - Object.keys(this.infoDb[pkgA].time).length;
+        }).slice(0, K).map(pkg => {
+            let p = this._fillInPackage({name: pkg, stat: this.statDb[pkg]}, this.date)
+            p.numVersions = Object.keys(this.infoDb[pkg].time).length - 2;
+            return p;
+        });
+    }
+
+    getOldestPkg(K: number): Package[] {
+        return this.keys.filter(pkg => this.infoDb[pkg].time).sort((pkgA, pkgB) => {
+            return +new Date(this.infoDb[pkgA].time.created) - +new Date(this.infoDb[pkgB].time.created);
+        }).slice(0, K).map(pkg => {
+            let p = this._fillInPackage({name: pkg, stat: this.statDb[pkg]}, this.date)
+            p.created = this.infoDb[pkg].time.created;
+            p.modified = this.infoDb[pkg].time.modified;
+            p.numVersions = Object.keys(this.infoDb[pkg].time).length - 2;
+            return p;
+        });
+    }
+
+    getNewestPkg(K: number): Package[] {
+        return this.keys.filter(pkg => this.infoDb[pkg].time).sort((pkgA, pkgB) => {
+            return +new Date(this.infoDb[pkgB].time.created) - +new Date(this.infoDb[pkgA].time.created);
+        }).slice(0, K).map(pkg => {
+            let p = this._fillInPackage({name: pkg, stat: this.statDb[pkg]}, this.date)
+            p.created = this.infoDb[pkg].time.created;
+            p.modified = this.infoDb[pkg].time.modified;
+            p.numVersions = Object.keys(this.infoDb[pkg].time).length - 2;
+            return p;
+        });
+    }
+
+    getTopNotUpdatedPkg(K: number): Package[] {
+        return this.keys.filter(pkg => this.infoDb[pkg].time).sort((pkgA, pkgB) => {
+            return +new Date(this.infoDb[pkgA].time.modified) - +new Date(this.infoDb[pkgB].time.modified);
+        }).slice(0, K).map(pkg => {
+            let p = this._fillInPackage({name: pkg, stat: this.statDb[pkg]}, this.date)
+            p.created = this.infoDb[pkg].time.created;
+            p.modified = this.infoDb[pkg].time.modified;
+            p.numVersions = Object.keys(this.infoDb[pkg].time).length - 2;
+            return p;
+        });
+    }
+
+    getTopRecentUpdatedPkg(K: number): Package[] {
+        return this.keys.filter(pkg => this.infoDb[pkg].time).sort((pkgA, pkgB) => {
+            return +new Date(this.infoDb[pkgB].time.modified) - +new Date(this.infoDb[pkgA].time.modified);
+        }).slice(0, K).map(pkg => {
+            let p = this._fillInPackage({name: pkg, stat: this.statDb[pkg]}, this.date)
+            p.created = this.infoDb[pkg].time.created;
+            p.modified = this.infoDb[pkg].time.modified;
+            p.numVersions = Object.keys(this.infoDb[pkg].time).length - 2;
+            return p;
+        });
     }
 
     total(): number {
@@ -89,7 +151,7 @@ export class Analyze {
         return res;
     }
 
-    private _fillInPackage(pkg: {name: string, stat: PackageStat}, date: string) : Package {
+    private _fillInPackage(pkg: { name: string, stat: PackageStat }, date: string): Package {
         let tempDate = new Date(date);
         tempDate.setDate(tempDate.getDate() - 1);
         let prevDate = tempDate.toISOString().split("T")[0];
@@ -121,7 +183,7 @@ export class Analyze {
 
     getTop(K: number, date: string, options: GetTopOptions): GetTopKResponse {
         let packages: Package[] = Object.keys(this.statDb).reduce((acc, key) => {
-            if (!options.minDownload || this.statDb[key][date] > options.minDownload) acc.push(this._fillInPackage({name: key, stat: this.statDb[key]}, date));
+            if (!options.minDownload || this.statDb[key][date] > options.minDownload) acc.push(this._fillInPackage({ name: key, stat: this.statDb[key] }, date));
             return acc;
         }, []);
 
@@ -153,3 +215,8 @@ export class Analyze {
 
 // console.log(new Analyze().getTop(20, "2018-09-08", { minDownload: 100 }).top.map(pkg => pkg.name + "-" + pkg.change).join(","))
 // console.log(new Analyze("2018-09-11").getDiff().map(pkg => pkg.name).join(","))
+// console.log(new Analyze("2018-09-11").getPkgWithMostVersions(10))
+// console.log(new Analyze("2018-09-11").getOldestPkg(10))
+// console.log(new Analyze("2018-09-11").getNewestPkg(10))
+// console.log(new Analyze("2018-09-11").getTopNotUpdatedPkg(10))
+// console.log(new Analyze("2018-09-11").getTopRecentUpdatedPkg(10))

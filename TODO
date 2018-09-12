@@ -9,5 +9,6 @@ I will keep NPM trending as a serverless site, so some features require visitors
 5. [x] duplicated packages should be collapsed by default(or maybe link to where it is always)
 6. clean up the main.js code
 7. [x] new packages fetched (link on the `total: xxxx` part) (dup with 4)
-8. num of packages distributed by months
+8. num of packages created distributed by months
 9. [x] move css / js to ts + scss and add pre-processor
+10. add a version chart :)
