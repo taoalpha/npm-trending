@@ -149,20 +149,30 @@ class NpmTrending {
         ensureFileSync(NpmTrending.SEED_FILE);
 
         // parse seed file, remove done / over
-        this.queue = (readFileSync(NpmTrending.SEED_FILE, 'utf8')).split(",").map(v => v.trim()).filter(v => !this.fetched[v] || !(this.fetched[v] === FetchStatus.Done || this.fetched[v] === FetchStatus.Over));
+        this.queue = (readFileSync(NpmTrending.SEED_FILE, 'utf8')).split(",").map(v => v.trim()).filter(v => !this.fetched.packages[v] || !(this.fetched.packages[v] === FetchStatus.Done || this.fetched.packages[v] === FetchStatus.Over));
 
-        // now lets fetch
-        this.fetch()
-            .finally(() => this._writeFiles());
+        // sanity check
+        rp({uri: "https://api.npmjs.org/downloads/point/last-day", json: true})
+            .then(res => {
+                // data has not filled in
+                if (res.downloads === 0) return;
+
+                // now lets fetch
+                this.fetch()
+                    .finally(() => this._writeFiles());
+            })
+            .catch(e => {
+                console.log(e);
+            });
     }
 
     // fetch
-    
+
     // 1. no fetch on fetched packages
     // 2. handle errors gracefully
     // 3. update info when needed (optional)
     // 4. terminate after 3minute
-    fetch() : Promise<any> {
+    fetch(): Promise<any> {
         // terminate when no pkg in the queue
         // will happen when we almost fetched everything :)
         // TODO: not sure about the total number of packages we can fetch in a day
@@ -171,7 +181,7 @@ class NpmTrending {
             // call it a day :)
             return this._concat();
         }
-        
+
         // terminate this round if too many errors
         if (this._fetchErrors > NpmTrending.MAX_FETCH_ERRORS) {
             return Promise.resolve();
@@ -186,8 +196,8 @@ class NpmTrending {
         // terminate if time's up
         if (Date.now() - this._startTime > NpmTrending.TIME_OUT) return Promise.resolve();
 
-        // change 10 to control how many requests can be sent at the same time
-        return Promise.all(new Array(10).fill(1).map(() => this.fetchPkgInfo(this.queue.pop())))
+        // change #num here to control how many requests can be sent at the same time
+        return Promise.all(new Array(15).fill(null).map(() => this.fetchPkgInfo(this.queue.pop())))
             .then(data => {
                 // name is a required field for a valid pkg
                 data = data.filter(pkg => pkg && !pkg.error && pkg.name);
@@ -246,7 +256,7 @@ class NpmTrending {
 
     // fetch pkg info
     fetchPkgInfo(pkg: string): Promise<any> {
-        if (!pkg) return Promise.resolve({error: true});
+        if (!pkg) return Promise.resolve({ error: true });
 
         // skip fetching
         if (this.fetched.packages[pkg] == FetchStatus.InfoFetching) return Promise.resolve({});
@@ -257,19 +267,19 @@ class NpmTrending {
         // skip over
         if (this.fetched.packages[pkg] == FetchStatus.InfoFetchOver) return Promise.resolve({});
 
-        let promise = rp({uri: "https://registry.npmjs.org/" + pkg, json: true})
-        .then(res => {
-            this.fetched.packages[pkg] === FetchStatus.InfoFetched;
-            return res;
-        })
-        .catch(e => {
-            // allow one retry
-            if (this.fetched.packages[pkg] === FetchStatus.InfoFetchFailed) this.fetched.packages[pkg] = FetchStatus.InfoFetchOver;
-            else this.fetched.packages[pkg] === FetchStatus.InfoFetchFailed;
-            this._fetchErrors++;
-            console.log(e.message);
-            return {error: e};
-        });
+        let promise = rp({ uri: "https://registry.npmjs.org/" + pkg, json: true })
+            .then(res => {
+                this.fetched.packages[pkg] === FetchStatus.InfoFetched;
+                return res;
+            })
+            .catch(e => {
+                // allow one retry
+                if (this.fetched.packages[pkg] === FetchStatus.InfoFetchFailed) this.fetched.packages[pkg] = FetchStatus.InfoFetchOver;
+                else this.fetched.packages[pkg] === FetchStatus.InfoFetchFailed;
+                this._fetchErrors++;
+                console.log(e.message);
+                return { error: e };
+            });
 
         this.fetched.packages[pkg] = FetchStatus.InfoFetching;
 
@@ -277,8 +287,8 @@ class NpmTrending {
     }
 
     // fetch pkg stats
-    fetchPkgStat(pkg: string): Promise<{[key: string]: ServerPkgStat}> {
-        if (!pkg) return Promise.resolve({[pkg]: {error: true}});
+    fetchPkgStat(pkg: string): Promise<{ [key: string]: ServerPkgStat }> {
+        if (!pkg) return Promise.resolve({ [pkg]: { error: true } });
 
         // skip pending ones
         if (this.fetched.packages[pkg] === FetchStatus.Pending) return Promise.resolve({});
@@ -289,16 +299,16 @@ class NpmTrending {
         // skip over
         if (this.fetched.packages[pkg] === FetchStatus.Over) return Promise.resolve({});
 
-        let promise = rp({uri: "https://api.npmjs.org/downloads/range/last-week/" + pkg, json: true})
+        let promise = rp({ uri: "https://api.npmjs.org/downloads/range/last-week/" + pkg, json: true })
             .then(res => {
                 // mark as fetched
                 this.fetched.packages[pkg] = FetchStatus.Done;
-                this.fetched.total ++;
-                return {[pkg]: res};
+                this.fetched.total++;
+                return { [pkg]: res };
             })
             .catch(e => {
                 this._errorHandler(e, [pkg]);
-                return {[pkg]: {error: e}};
+                return { [pkg]: { error: e } };
             });
 
         // set to pending
@@ -308,27 +318,27 @@ class NpmTrending {
     }
 
     // fetch stats for multiple packages at once
-    bulkFetchPkgStat(packages: string[] = []) : Promise<{[key: string]: ServerPkgStat}> {
+    bulkFetchPkgStat(packages: string[] = []): Promise<{ [key: string]: ServerPkgStat }> {
         // remove fetched and fetching
         packages = packages.filter(pkg => this.fetched.packages[pkg] !== FetchStatus.Done
             && this.fetched.packages[pkg] !== FetchStatus.Over
             && this.fetched.packages[pkg] !== FetchStatus.Pending);
 
-        if (!packages.length) return Promise.resolve({all: {error: true}});
+        if (!packages.length) return Promise.resolve({ all: { error: true } });
 
         // the request
-        let promise = rp({uri: "https://api.npmjs.org/downloads/range/last-week/" + packages.join(","), json: true})
+        let promise = rp({ uri: "https://api.npmjs.org/downloads/range/last-week/" + packages.join(","), json: true })
             .then(res => {
                 // mark as fetched
                 packages.forEach(pkg => {
                     this.fetched.packages[pkg] = FetchStatus.Done;
-                    this.fetched.total ++;
+                    this.fetched.total++;
                 });
                 return res;
             })
             .catch(e => {
                 this._errorHandler(e, packages);
-                return {all: {error: e}};
+                return { all: { error: e } };
             });
 
         // set to Pending if its Ready
@@ -337,7 +347,7 @@ class NpmTrending {
         })
 
         return promise;
- 
+
     }
 
     private _errorHandler(e: any, packages: string[]): void {
@@ -362,7 +372,7 @@ class NpmTrending {
     }
 
     // ready to concat all files
-    private _concat() : Promise<void> {
+    private _concat(): Promise<void> {
         // write first
         this._writeFiles();
 

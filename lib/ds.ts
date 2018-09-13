@@ -197,7 +197,7 @@ export class Analyze {
         let topK = packages
             .sort((pkgA, pkgB): number => pkgB[date] - pkgA[date])
             .slice(0, K);
-
+        
         let topKIncrease = packages
             .sort((pkgA, pkgB): number => pkgB.inc - pkgA.inc)
             .reduce((acc, pkg) => {
@@ -220,7 +220,7 @@ export class Analyze {
     }
 }
 
-// console.log(new Analyze().getTop(20, "2018-09-08", { minDownload: 100 }).top.map(pkg => pkg.name + "-" + pkg.change).join(","))
+// console.log(new Analyze().getTop(20, "2018-09-13", { minDownload: 100 }).top.map(pkg => pkg.name + "-" + pkg.change).join(","))
 // console.log(new Analyze("2018-09-11").getDiff().map(pkg => pkg.name).join(","))
 // console.log(new Analyze("2018-09-11").getPkgWithMostVersions(10))
 // console.log(new Analyze("2018-09-11").getOldestPkg(10))
