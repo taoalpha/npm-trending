@@ -86,7 +86,7 @@ class NpmTrending {
     static DATA_DIR = "data";
 
     // configs
-    static TIME_OUT = 5 * 60 * 1000; // (5m)
+    static TIME_OUT = 2 * 1000; // (5m)
     static MAX_FETCH_ERRORS = 50;
 
     @Once()
@@ -127,7 +127,9 @@ class NpmTrending {
         writeFileSync(NpmTrending.SEED_FILE, seed, "utf-8");
 
         // update message
-        writeFileSync(NpmTrending.MESSAGE_FILE, `#${this.fetched.count} fetch finished! ${this.fetched.total - this._lastFetched} packages fetched this time.`, "utf-8");
+
+        let date = new Date().toISOString().split("T")[0];
+        writeFileSync(NpmTrending.MESSAGE_FILE, `Job ${this.fetched.count} fetch finished! ${this.fetched.total - this._lastFetched} packages fetched this time(${date}).`, "utf-8");
 
         // reset infoDb and statDb
         this.infoDb = {};
@@ -146,8 +148,8 @@ class NpmTrending {
 
         ensureFileSync(NpmTrending.SEED_FILE);
 
-        // parse seed file, remove fetched
-        this.queue = (readFileSync(NpmTrending.SEED_FILE, 'utf8')).split(",").map(v => v.trim()).filter(v => !this.fetched[v]);
+        // parse seed file, remove done / over
+        this.queue = (readFileSync(NpmTrending.SEED_FILE, 'utf8')).split(",").map(v => v.trim()).filter(v => !this.fetched[v] || !(this.fetched[v] === FetchStatus.Done || this.fetched[v] === FetchStatus.Over));
 
         // now lets fetch
         this.fetch()
@@ -155,6 +157,7 @@ class NpmTrending {
     }
 
     // fetch
+    
     // 1. no fetch on fetched packages
     // 2. handle errors gracefully
     // 3. update info when needed (optional)
@@ -206,10 +209,10 @@ class NpmTrending {
 
                         // add deps to the queue if its not in the list or not finished during previous fetches
                         this.infoDb[pkg.name].deps.forEach(dep => {
-                            if (typeof this.fetched.packages[dep] === "undefined" || [FetchStatus.Done, FetchStatus.Over].indexOf(this.fetched.packages[dep]) === -1) this.queue.push(dep);
+                            if (typeof this.fetched.packages[dep] === "undefined") this.queue.push(dep);
                         });
                         this.infoDb[pkg.name].devDeps.forEach(dep => {
-                            if (typeof this.fetched.packages[dep] === "undefined" || [FetchStatus.Done, FetchStatus.Over].indexOf(this.fetched.packages[dep]) === -1) this.queue.push(dep);
+                            if (typeof this.fetched.packages[dep] === "undefined") this.queue.push(dep);
                         });
                     }
                 });
