@@ -5,18 +5,24 @@
  */
 
 
-import { copySync, writeFileSync, readFileSync } from "fs-extra";
+import { copySync, writeFileSync, readFileSync, pathExistsSync } from "fs-extra";
 import { Generator } from "./lib/generator";
 import { join } from "path";
 
-let generator = new Generator();
-let endDate = new Date();
 let date = new Date();
-date.setDate(endDate.getDate() - 1);
+// if data pkg not exists, do nothing
+let dataPath = join(__dirname, "data", "stat-" + date.toISOString().split("T")[0] + ".json");
+if (pathExistsSync(dataPath)) {
 
-while (date < endDate) {
-    generator.generate(date.toISOString().split("T")[0]);
-    date.setDate(date.getDate() + 1);
+    let generator = new Generator();
+    let endDate = new Date();
+    date.setDate(endDate.getDate() - 1);
+
+
+    while (date < endDate) {
+        generator.generate(date.toISOString().split("T")[0]);
+        date.setDate(date.getDate() + 1);
+    }
 }
 
 // move over assets and template
