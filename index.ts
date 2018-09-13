@@ -86,7 +86,7 @@ class NpmTrending {
     static DATA_DIR = "data";
 
     // configs
-    static TIME_OUT = 2 * 1000; // (5m)
+    static TIME_OUT = 5 * 60 * 1000; // (5m)
     static MAX_FETCH_ERRORS = 50;
 
     @Once()
