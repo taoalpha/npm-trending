@@ -60,18 +60,22 @@ export class Analyze {
     private keys: string[] = [];
     private prevKeys: string[] = [];
 
+    private prevDate: string;
+
     constructor(private date: string = DateHelper.today) {
-        let prevDate = DateHelper.add(date, -1);
+        this.prevDate = DateHelper.add(date, -1);
         this.statDb = readJsonSync(join(__dirname, "../data/stat-" + date + ".json"));
         this.infoDb = readJsonSync(join(__dirname, "../data/info-" + date + ".json"));
         this.keys = Object.keys(this.statDb);
 
         // TODO: handle edge cases (unlikely happen for this project tho)
-        while(!pathExistsSync(join(__dirname, "../data/stat-" + prevDate + ".json"))) {
-            prevDate = DateHelper.add(prevDate, -1);
+        while(!pathExistsSync(join(__dirname, "../data/stat-" + this.prevDate + ".json"))) {
+            this.prevDate = DateHelper.add(this.prevDate, -1);
         }
-        this.prevStatDb = readJsonSync(join(__dirname, "../data/stat-" + prevDate + ".json"));
-        this.prevInfoDb = readJsonSync(join(__dirname, "../data/info-" + prevDate + ".json"));
+
+        // to get diff
+        this.prevStatDb = readJsonSync(join(__dirname, "../data/stat-" + this.prevDate + ".json"));
+        this.prevInfoDb = readJsonSync(join(__dirname, "../data/info-" + this.prevDate + ".json"));
         this.prevKeys = Object.keys(this.prevStatDb);
     }
 
@@ -158,9 +162,8 @@ export class Analyze {
     }
 
     private _fillInPackage(pkg: { name: string, stat: PackageStat }, date: string): Package {
-        let tempDate = new Date(date);
-        tempDate.setDate(tempDate.getDate() - 1);
-        let prevDate = tempDate.toISOString().split("T")[0];
+        // next date that has valid data should be the previous day of previous valid fetch day
+        let prevDate = DateHelper.add(this.prevDate, -1);
 
         let pkgToAdd: Package = {
             name: pkg.name,
