@@ -183,6 +183,19 @@ header {
     .catHeader {
         width: 33.33%;
     }
+
+    $emptyFieldHeight: 60px;
+    .empty-data {
+        width: 500px;
+        margin: 0 auto;
+        background: rgba(255, 255, 255, 0.7);
+        border-radius: 10px;
+        height: $emptyFieldHeight;
+        text-align: center;
+        span {
+            line-height: $emptyFieldHeight / 2;
+        }
+    }
 }
 
 // modals

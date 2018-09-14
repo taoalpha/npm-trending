@@ -51,7 +51,7 @@ class Helpers {
 
 class NpmTrending {
     private modals = document.getElementById("modals");
-    private modalContentContainer = document.querySelector("#modals .content-container");
+    modalContentContainer = document.querySelector("#modals .content-container");
     private packages: any = {};
 
     constructor(private data: any, private date: string = DateHelper.today) {
@@ -119,6 +119,9 @@ class NpmTrending {
     }
 
     renderContent(data) {
+        if (!data.dayTop || !data.dayTop.length) {
+            return `<div class="empty-data"><span>No data available for this day, possibly due to data issues in npm registry API.</span></div>`;
+        }
         return `
 ${this.renderCategory({
                 id: "top",
@@ -304,17 +307,19 @@ Helpers.ready(() => {
     (axios as any).get(`./reports/pkg-${theDate}.json`)
         .then(function (response) {
             let data = response.data;
-            // TODO: handle this one better
-            if (!data.dayTop || data.dayTop.length <= 0) NpmTrending.goTo();
-
-            // update title
-            document.title = `${data.title} @ ${DateHelper.getDateString(data.date)}`;
-
             let npmTrending = new NpmTrending(data, theDate);
 
             // render header and content
             document.getElementsByTagName("header")[0].innerHTML = npmTrending.renderHeader(data);
             document.getElementById("content").innerHTML = npmTrending.renderContent(data);
+
+            // update title
+            document.title = `${data.title} @ ${DateHelper.getDateString(data.date)}`;
+
+            // if no top, no need to render sparkline... since no data will be there
+            if (!data.dayTop || data.dayTop.length <= 0) {
+                return;
+            }
 
             // draw the sparkline
             npmTrending.drawSparkline(data);
