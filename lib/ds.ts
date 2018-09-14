@@ -4,7 +4,7 @@
  * parse the data we retrieved and get some top / bottom packages
  */
 
-import { readJsonSync } from "fs-extra";
+import { readJsonSync, pathExists, pathExistsSync } from "fs-extra";
 import { join } from "path";
 import { PackageInfo, PackageStat } from "../types";
 import { DateHelper } from "./helpers";
@@ -63,10 +63,15 @@ export class Analyze {
     constructor(private date: string = DateHelper.today) {
         let prevDate = DateHelper.add(date, -1);
         this.statDb = readJsonSync(join(__dirname, "../data/stat-" + date + ".json"));
-        this.prevStatDb = readJsonSync(join(__dirname, "../data/stat-" + prevDate + ".json"));
         this.infoDb = readJsonSync(join(__dirname, "../data/info-" + date + ".json"));
-        this.prevInfoDb = readJsonSync(join(__dirname, "../data/info-" + prevDate + ".json"));
         this.keys = Object.keys(this.statDb);
+
+        // TODO: handle edge cases (unlikely happen for this project tho)
+        while(!pathExistsSync(join(__dirname, "../data/stat-" + prevDate + ".json"))) {
+            prevDate = DateHelper.add(prevDate, -1);
+        }
+        this.prevStatDb = readJsonSync(join(__dirname, "../data/stat-" + prevDate + ".json"));
+        this.prevInfoDb = readJsonSync(join(__dirname, "../data/info-" + prevDate + ".json"));
         this.prevKeys = Object.keys(this.prevStatDb);
     }
 
