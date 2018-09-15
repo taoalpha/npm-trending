@@ -20,7 +20,7 @@ import * as rp from "request-promise";
 import { readJsonSync, ensureFileSync, writeJsonSync, readFileSync, writeFileSync, readdirSync, removeSync, pathExistsSync } from "fs-extra";
 import { Once } from "lodash-decorators";
 import { join as joinPath } from "path";
-import { ServerPkgStat, PackageStat, PackageInfo, FetchHistory, FetchStatus} from "./types";
+import { ServerPkgStat, PackageStat, PackageInfo, FetchHistory, FetchStatus, PKG_NOT_FOUND} from "./types";
 import { DateHelper } from './lib/helpers';
 
 class NpmTrending {
@@ -37,6 +37,10 @@ class NpmTrending {
         total: 0,
         count: 0
     };
+
+    private notFound: {
+        [key: string]: PKG_NOT_FOUND
+    } = {};
 
     // queue for fetching
     private queue : string[] = [];
@@ -86,6 +90,9 @@ class NpmTrending {
         return "stat-" + date;
     }
 
+    // store packages that not found, so we should not fetch those that often
+    static PKG_NOT_FOUND_FILE = joinPath(__dirname, "data", "404s.json");
+
     // seed file that we will start our random crawling
     static SEED_FILE = joinPath(__dirname, "seed");
 
@@ -95,6 +102,23 @@ class NpmTrending {
     // configs
     static TIME_OUT = 5 * 60 * 1000; // (5m)
     static MAX_FETCH_ERRORS = 50;
+    static SUSPEND_404_BASE_TIME = 7 * 24 * 60 * 60 * 1000; // 7days
+
+
+    // APIs
+    // depends
+    static DEPENDED_PACKAGE_API(pkg: string): string {
+        // from npm page, need change headers to make sure it return the json format instead of html
+        // we probably don't need this one since we only care how many dependents instead of who they are
+        return `https://www.npmjs.com/browse/depended/${pkg}`;
+    }
+    static PACKAGE_INFO_API(pkg: string): string {
+        return `https://registry.npmjs.org/${pkg}`;
+    }
+    static PACKAGE_STAT_API(packages: string[], range: string): string {
+        return `https://api.npmjs.org/downloads/range/${range}/${packages.join(",")}`;
+    }
+
 
     @Once()
     private _getFetched() : FetchHistory {
@@ -127,6 +151,9 @@ class NpmTrending {
         this.fetched.count++;
         writeJsonSync(NpmTrending.FETCHED_PACKAGE_FILE(this.date), this.fetched);
 
+        // write 404s
+        writeJsonSync(NpmTrending.PKG_NOT_FOUND_FILE, this.notFound);
+
         // update seed
         let seed = "";
         if (this.queue.length) seed += this.queue.join(",");
@@ -146,22 +173,32 @@ class NpmTrending {
         // check if today's job is already finished
         if (pathExistsSync(joinPath(NpmTrending.DATA_DIR, NpmTrending.INFO_DB_PREFIX(this.date) + ".json"))) return;
 
+        // load 404s
+        ensureFileSync(NpmTrending.PKG_NOT_FOUND_FILE);
+        try {
+            this.notFound = readJsonSync(NpmTrending.PKG_NOT_FOUND_FILE);
+        } catch(e) {
+            this.notFound = {};
+        }
+
         // try load previous fetched data (so we don't need to fetch those packages again)
         this.fetched = this._getFetched();
         this._lastFetched = this.fetched.total;
 
-        ensureFileSync(NpmTrending.SEED_FILE);
-
         // parse seed file, remove done / over
-        this.queue = (readFileSync(NpmTrending.SEED_FILE, 'utf8')).split(",").map(v => v.trim()).filter(v => !this.fetched.packages[v] || !(this.fetched.packages[v] === FetchStatus.Done || this.fetched.packages[v] === FetchStatus.Over));
+        ensureFileSync(NpmTrending.SEED_FILE);
+        this.queue = (readFileSync(NpmTrending.SEED_FILE, 'utf8')).split(",").map(v => v.trim()).filter(v => this._shouldFetch(v));
 
-        console.log(`Currently queue length: ${this.queue.length}, current fetched: ${this.fetched.total}`);
+        console.log(`Currently queue length: ${this.queue.length}, current fetched: ${this.fetched.total}, recorded 404s: ${Object.keys(this.notFound).length}`);
 
         // sanity check
         rp({uri: "https://api.npmjs.org/downloads/point/" + DateHelper.add(this.date, -1), json: true})
             .then(res => {
                 // data has not filled in
-                if (res.downloads === 0) return;
+                if (res.downloads === 0) {
+                    console.log("No stats in the API!")
+                    return;
+                }
 
                 // now lets fetch
                 this.fetch()
@@ -170,6 +207,22 @@ class NpmTrending {
             .catch(e => {
                 console.log(e);
             });
+    }
+
+    private _shouldFetch(pkg: string): boolean {
+        let canFetch = true;
+        if (this.notFound[pkg]) {
+            // don't re-fetch those 404 packages too soon
+            // every failed fetch will double the punishment in terms of suspension time for re-fetch
+            canFetch = (Date.now() - this.notFound[pkg].lastFetchedDate) > (NpmTrending.SUSPEND_404_BASE_TIME * this.notFound[pkg].fetchedCount);
+        }
+
+        return canFetch &&
+            // keep new packages (not recorded in fetched)
+            (!this.fetched.packages[pkg] ||
+                // keep pkg not Finished(Done or Over)
+                !(this.fetched.packages[pkg] === FetchStatus.Done || this.fetched.packages[pkg] === FetchStatus.Over)
+            )
     }
 
     // fetch
@@ -212,23 +265,31 @@ class NpmTrending {
                 // and add their dependencies(if not fetched) to the queue
                 data.forEach(pkg => {
                     let keys = ["maintainers", "time", "author", "repository", "description", "homepage", "license"];
-                    this.infoDb[pkg.name] = { lastFetched: Date.now(), name: pkg.name };
-                    keys.forEach(key => this.infoDb[pkg.name][key] = pkg[key]);
+                    this.infoDb[pkg.name] = this.infoDb[pkg.name] || { lastFetched: Date.now(), name: pkg.name, dependentCount: 0, devDependentCount: 0 };
+                    let curPkg = this.infoDb[pkg.name];
+                    keys.forEach(key => curPkg[key] = pkg[key]);
 
                     let versions = pkg.versions && Object.keys(pkg.versions).sort((a, b) => a.localeCompare(b));
                     if (versions && versions.length >= 1) {
                         let latest = pkg.versions[versions[versions.length - 1]];
 
                         // store deps and devDeps into info
-                        this.infoDb[pkg.name].deps = Object.keys(latest.dependencies || {});
-                        this.infoDb[pkg.name].devDeps = Object.keys(latest.devDependencies || {});
+                        curPkg.deps = Object.keys(latest.dependencies || {});
+                        curPkg.devDeps = Object.keys(latest.devDependencies || {});
 
                         // add deps to the queue if its not in the list or not finished during previous fetches
-                        this.infoDb[pkg.name].deps.forEach(dep => {
-                            if (typeof this.fetched.packages[dep] === "undefined") this.queue.push(dep);
+                        // also record stats on dependentCount so we can track every package and how many packages depend on it
+                        // will use this to improve our algorithm when calculate how popular the package is
+                        // this data will be recorded every day, so we can concatenate those data and get more info on how its changed
+                        curPkg.deps.forEach(dep => {
+                            this.infoDb[dep] = this.infoDb[dep] || { name: dep, dependentCount: 0, devDependentCount: 0 };
+                            this.infoDb[dep].dependentCount++;
+                            if (this._shouldFetch(dep)) this.queue.push(dep);
                         });
-                        this.infoDb[pkg.name].devDeps.forEach(dep => {
-                            if (typeof this.fetched.packages[dep] === "undefined") this.queue.push(dep);
+                        curPkg.devDeps.forEach(dep => {
+                            this.infoDb[dep] = this.infoDb[dep] || { name: dep, dependentCount: 0, devDependentCount: 0 };
+                            this.infoDb[dep].devDependentCount++;
+                            if (this._shouldFetch(dep)) this.queue.push(dep);
                         });
                     }
                 });
@@ -273,17 +334,13 @@ class NpmTrending {
         // skip over
         if (this.fetched.packages[pkg] == FetchStatus.InfoFetchOver) return Promise.resolve({});
 
-        let promise = rp({ uri: "https://registry.npmjs.org/" + pkg, json: true })
+        let promise = rp({ uri: NpmTrending.PACKAGE_INFO_API(pkg), json: true })
             .then(res => {
                 this.fetched.packages[pkg] === FetchStatus.InfoFetched;
                 return res;
             })
             .catch(e => {
-                // allow one retry
-                if (this.fetched.packages[pkg] === FetchStatus.InfoFetchFailed) this.fetched.packages[pkg] = FetchStatus.InfoFetchOver;
-                else this.fetched.packages[pkg] === FetchStatus.InfoFetchFailed;
-                this._fetchErrors++;
-                console.log(e.message);
+                this._errorHandler(e, [pkg], "info");
                 return { error: e };
             });
 
@@ -305,7 +362,7 @@ class NpmTrending {
         // skip over
         if (this.fetched.packages[pkg] === FetchStatus.Over) return Promise.resolve({});
 
-        let promise = rp({ uri: `https://api.npmjs.org/downloads/range/${DateHelper.add(this.date, -7)}:${DateHelper.add(this.date, -1)}/${pkg}`, json: true })
+        let promise = rp({ uri: NpmTrending.PACKAGE_STAT_API([pkg], `${DateHelper.add(this.date, -7)}:${DateHelper.add(this.date, -1)}`), json: true })
             .then(res => {
                 // mark as fetched
                 this.fetched.packages[pkg] = FetchStatus.Done;
@@ -333,7 +390,7 @@ class NpmTrending {
         if (!packages.length) return Promise.resolve({ all: { error: true } });
 
         // the request
-        let promise = rp({ uri: `https://api.npmjs.org/downloads/range/${DateHelper.add(this.date, -7)}:${DateHelper.add(this.date, -1)}/${packages.join(",")}`, json: true })
+        let promise = rp({ uri: NpmTrending.PACKAGE_STAT_API(packages, `${DateHelper.add(this.date, -7)}:${DateHelper.add(this.date, -1)}`), json: true })
             .then(res => {
                 // mark as fetched
                 packages.forEach(pkg => {
@@ -356,25 +413,47 @@ class NpmTrending {
 
     }
 
-    private _errorHandler(e: any, packages: string[]): void {
+    private _errorHandler(e: any, packages: string[], type: "stat" | "info" = "stat"): void {
         this._fetchErrors++;
 
-        // set failed to done (allow only one retry)
-        packages.forEach(pkg => {
-            if (this.fetched.packages[pkg] === FetchStatus.Failed) this.fetched.packages[pkg] = FetchStatus.Over
-        });
+        // log for records
+        console.log(packages.join(","), e.message);
 
-        if (e.statusCode === 404) {
+        // 404 packages
+        if (e.statusCode === 404 || e.message.error === "Not found") {
             // no need to retry for 404
-            packages.forEach(pkg => this.fetched.packages[pkg] = FetchStatus.Over);
-        } else {
+            packages.forEach(pkg => {
+                this.fetched.packages[pkg] = FetchStatus.Over
+
+                // add to NOT_FOUND
+                this.notFound[pkg] = this.notFound[pkg] || {
+                    name: pkg,
+                    type: type,
+                    lastFetchedDate: Date.now(),
+                    fetchedCount: 0
+                };
+
+                this.notFound[pkg].lastFetchedDate = Date.now();
+                this.notFound[pkg].fetchedCount++;
+            });
+            return;
+        }
+
+        if (type === "stat") {
+            // set failed to done (allow only one retry)
+            packages.forEach(pkg => {
+                if (this.fetched.packages[pkg] === FetchStatus.Failed) this.fetched.packages[pkg] = FetchStatus.Over
+            });
+
             // mark as failed
             packages.forEach(pkg => {
                 if (this.fetched.packages[pkg] !== FetchStatus.Over) this.fetched.packages[pkg] = FetchStatus.Failed
             });
+        } else {
+            // allow one retry
+            if (this.fetched.packages[packages[0]] === FetchStatus.InfoFetchFailed) this.fetched.packages[packages[0]] = FetchStatus.InfoFetchOver;
+            else this.fetched.packages[packages[0]] === FetchStatus.InfoFetchFailed;
         }
-
-        console.log(packages.join(","), e.message);
     }
 
     // ready to concat all files

@@ -40,7 +40,9 @@ export interface PackageInfo {
     homepage?: string,
     keywords?: string[],
     license?: string,
-    lastFetched?: number
+    lastFetched?: number,
+    dependentCount?: number, // record how many dependents it has dependencies (both this one and the one below only track latest version)
+    devDependentCount?: number, // record how many dependents it has as devDependencies
 }
 
 // date - number
@@ -67,3 +69,12 @@ export interface FetchHistory {
     count: number,
     total: number
 }
+
+
+export interface PKG_NOT_FOUND {
+    name: string,
+    lastFetchedDate: number,
+    fetchedCount: number,
+    type: "info" | "stat",
+}
+

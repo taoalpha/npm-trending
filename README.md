@@ -7,19 +7,21 @@ will crawl npm packages download stats and generate trending pages every day!!!
 
 First, npm-trending is a website that will collect the stats about npm packages and then generate a report for top trending packages every day.
 
-I build this because I used github trending a lot, and it helps me find a lot fantastic projects and learns a lot. So I wonder why don't do the same thing for npm packages ? I believe I can find some pretty good packages that I never heard before.
+I build this because I used github trending a lot, and it helped me find a lot fantastic projects and learned a lot. So I wonder why don't do the same thing for npm packages ? I believe I can find some pretty good packages that I never heard before.
 
-So I build npm-trending, it will generate a daily report around 5-6pm PST to show the current popular projects on npm.
+So I build npm-trending, it will generate a daily report around 3am (UTC) to show the current popular projects on npm.
 
 The popularity is calculated based on downloads purely(probably should consider about dependencies too - mark as a TODO).
 
 ### How
 
-I fetched the stats from npm api, and store them into a giant json file (I did not use any DB because I want to host it on github pages and its a purely static website, so use a pure file based storage should be fine and good enough for now).
+I used a continuous integration service called circleCI to help me make this daily-trending-report automate. Basically I schedule the crawler script to run every day at 3am UTC to fetch stats, and after it fetched all it can get, it will use the data generate the report for that day.
 
-I have a simple explore system so I can find new packages based their dependencies graph, and fetch them if I find any new one.
+Here is the status of every build: https://circleci.com/gh/taoalpha/workflows/npm-trending/tree/master
 
-Based on the update of the npm stats, I will generate report around 5-6pm PST every day(which is the 00:00 for UTC). The report will list three categories:
+I have to use several jobs with help from circleCI caching to fetch all packages since it takes time to fetch them and circleCI has a limit on free version :(
+
+Based on the update of the npm stats, I will generate report every day. The report will list three categories:
 
 1. Top packages based on the increase of number of downloads from last day;
 2. Top packages based on the increase percentage from last day;
@@ -28,3 +30,8 @@ Based on the update of the npm stats, I will generate report around 5-6pm PST ev
 [NPM Trending Report](https://taoalpha.github.io/npm-trending/)
 
 Welcome :)
+
+
+### What next ?
+
+I am currently working on adding more aspects to the popularity calculation and also try to find new ways to detect potential popular packages. And also I am trying to get more from the data I fetched, if you have any good ideas, please don't hesitate and let me know.

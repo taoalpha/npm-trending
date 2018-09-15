@@ -18,3 +18,5 @@ I will keep NPM trending as a serverless site, so some features require visitors
 - [x] new packages fetched (link on the `total: xxxx` part) (dup with 4)
 - [x] move css / js to ts + scss and add pre-processor
 - [x] add a version chart :)
+- [x] record 404 packages and reduce the fetching frequency for those
+- [x] add # of dependents for each package (the number will be derived based on what we have fetched, so it won't be very accurate)
