@@ -28,6 +28,11 @@ class Helpers {
         }
     }
 
+    static maxLengthString(str: string, len: number): string {
+        if (str.length < len) return str;
+        return str.split("").slice(0, len).join("") + "...";
+    }
+
     static ready(fn: () => void): void {
         if ((document as any).attachEvent ? document.readyState === "complete" : document.readyState !== "loading") {
             fn();
@@ -100,7 +105,7 @@ class NpmTrending {
             <div class="sparkline download-history" data-pkg="${pkg.name}"></div>
             <div class="pkgInfo">
                 <span>
-                  ${pkg.author ? `<a target="_blank" href="https://www.npmjs.com/~${pkg.author.name}">` : ""}<i class="fa fa-user"> ${pkg.author && pkg.author.name || "Unknown"}</i>${pkg.author ? "</a>" : ""}
+                  ${pkg.author ? `<a target="_blank" href="https://www.npmjs.com/~${pkg.author.name}">` : ""}<i class="fa fa-user"> ${Helpers.maxLengthString(pkg.author && pkg.author.name || "Unknown", 15)}</i>${pkg.author ? "</a>" : ""}
                 </span>
                 ${pkg.homepage ? `
                 <span> 
@@ -108,7 +113,8 @@ class NpmTrending {
                 </span>
                 ` : ""}
                 <span><i class="fa fa-download"> ${Helpers.prettyNumber(pkg[category.date])}</i></span>
-                ${pkg.versions && category.id !== "new" ? `<span class="fa fa-history" data-pkg="${pkg.name}"></span>` : ""}
+                ${pkg.versions && category.id !== "new" ? `<span class="fa fa-history pointer" data-pkg="${pkg.name}"></span>` : ""}
+                <span><a href="https://www.npmjs.com/browse/depended/${pkg.name}" target="_blank"><i class="fa fa-tree"> Dep</i></a></span>
             </div>
             <div class="share"></div>
         </div>
