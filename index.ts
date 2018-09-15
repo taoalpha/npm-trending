@@ -21,6 +21,7 @@ import { readJsonSync, ensureFileSync, writeJsonSync, readFileSync, writeFileSyn
 import { Once } from "lodash-decorators";
 import { join as joinPath } from "path";
 import { ServerPkgStat, PackageStat, PackageInfo, FetchHistory, FetchStatus} from "./types";
+import { DateHelper } from './lib/helpers';
 
 class NpmTrending {
     private infoDb : {
@@ -45,7 +46,7 @@ class NpmTrending {
     private _lastFetched: number = 0;
     private _fetchErrors: number = 0;
 
-    constructor() {
+    constructor(private date: string = DateHelper.today) {
         this.init();
 
         // emit stats after run
@@ -75,9 +76,15 @@ class NpmTrending {
     // path to store fetched data from previous runs
     static TEMP_DIR = joinPath(__dirname, ".tmp");
     static MESSAGE_FILE = joinPath(__dirname, "message");
-    static FETCHED_PACKAGE_FILE = joinPath(NpmTrending.TEMP_DIR, new Date().toISOString().split("T")[0] + "-fetched.json");
-    static INFO_DB_PREFIX = "info-" + new Date().toISOString().split("T")[0];
-    static STAT_DB_PREFIX = "stat-" + new Date().toISOString().split("T")[0];
+    static FETCHED_PACKAGE_FILE(date: string = DateHelper.today) {
+        return joinPath(NpmTrending.TEMP_DIR, date + "-fetched.json");
+    }
+    static INFO_DB_PREFIX(date: string = DateHelper.today): string {
+        return "info-" + date;
+    }
+    static STAT_DB_PREFIX(date: string = DateHelper.today) {
+        return "stat-" + date;
+    }
 
     // seed file that we will start our random crawling
     static SEED_FILE = joinPath(__dirname, "seed");
@@ -91,7 +98,7 @@ class NpmTrending {
 
     @Once()
     private _getFetched() : FetchHistory {
-        let file = NpmTrending.FETCHED_PACKAGE_FILE;
+        let file = NpmTrending.FETCHED_PACKAGE_FILE(this.date);
         ensureFileSync(file);
         try {
             return readJsonSync(file);
@@ -106,11 +113,11 @@ class NpmTrending {
         // if no data fetched, no need to write anything
         if (!Object.keys(this.infoDb).length || !Object.keys(this.statDb).length) return;
 
-        let infoDb = joinPath(NpmTrending.TEMP_DIR, NpmTrending.INFO_DB_PREFIX + "-" + this.fetched.count + ".json")
-        let statDb = joinPath(NpmTrending.TEMP_DIR, NpmTrending.STAT_DB_PREFIX + "-" + this.fetched.count + ".json")
+        let infoDb = joinPath(NpmTrending.TEMP_DIR, NpmTrending.INFO_DB_PREFIX(this.date) + "-" + this.fetched.count + ".json")
+        let statDb = joinPath(NpmTrending.TEMP_DIR, NpmTrending.STAT_DB_PREFIX(this.date) + "-" + this.fetched.count + ".json")
         ensureFileSync(infoDb);
         ensureFileSync(statDb);
-        ensureFileSync(NpmTrending.FETCHED_PACKAGE_FILE);
+        ensureFileSync(NpmTrending.FETCHED_PACKAGE_FILE(this.date));
 
         // write db files
         writeJsonSync(infoDb, this.infoDb);
@@ -118,7 +125,7 @@ class NpmTrending {
 
         // update fetchHistory
         this.fetched.count++;
-        writeJsonSync(NpmTrending.FETCHED_PACKAGE_FILE, this.fetched);
+        writeJsonSync(NpmTrending.FETCHED_PACKAGE_FILE(this.date), this.fetched);
 
         // update seed
         let seed = "";
@@ -127,9 +134,7 @@ class NpmTrending {
         writeFileSync(NpmTrending.SEED_FILE, seed, "utf-8");
 
         // update message
-
-        let date = new Date().toISOString().split("T")[0];
-        writeFileSync(NpmTrending.MESSAGE_FILE, `Job ${this.fetched.count} fetch finished! ${this.fetched.total - this._lastFetched} packages fetched this time(${date}).`, "utf-8");
+        writeFileSync(NpmTrending.MESSAGE_FILE, `Job ${this.fetched.count} fetch finished! ${this.fetched.total - this._lastFetched} packages fetched this time(${this.date}).`, "utf-8");
 
         // reset infoDb and statDb
         this.infoDb = {};
@@ -139,8 +144,7 @@ class NpmTrending {
     // init so it knows what to fetch
     init(): void {
         // check if today's job is already finished
-        let date = new Date().toISOString().split("T")[0];
-        if (pathExistsSync(joinPath(NpmTrending.DATA_DIR, NpmTrending.INFO_DB_PREFIX + ".json"))) return;
+        if (pathExistsSync(joinPath(NpmTrending.DATA_DIR, NpmTrending.INFO_DB_PREFIX(this.date) + ".json"))) return;
 
         // try load previous fetched data (so we don't need to fetch those packages again)
         this.fetched = this._getFetched();
@@ -151,8 +155,10 @@ class NpmTrending {
         // parse seed file, remove done / over
         this.queue = (readFileSync(NpmTrending.SEED_FILE, 'utf8')).split(",").map(v => v.trim()).filter(v => !this.fetched.packages[v] || !(this.fetched.packages[v] === FetchStatus.Done || this.fetched.packages[v] === FetchStatus.Over));
 
+        console.log(`Currently queue length: ${this.queue.length}, current fetched: ${this.fetched.total}`);
+
         // sanity check
-        rp({uri: "https://api.npmjs.org/downloads/point/last-day", json: true})
+        rp({uri: "https://api.npmjs.org/downloads/point/" + DateHelper.add(this.date, -1), json: true})
             .then(res => {
                 // data has not filled in
                 if (res.downloads === 0) return;
@@ -299,7 +305,7 @@ class NpmTrending {
         // skip over
         if (this.fetched.packages[pkg] === FetchStatus.Over) return Promise.resolve({});
 
-        let promise = rp({ uri: "https://api.npmjs.org/downloads/range/last-week/" + pkg, json: true })
+        let promise = rp({ uri: `https://api.npmjs.org/downloads/range/${DateHelper.add(this.date, -7)}:${DateHelper.add(this.date, -1)}/${pkg}`, json: true })
             .then(res => {
                 // mark as fetched
                 this.fetched.packages[pkg] = FetchStatus.Done;
@@ -327,7 +333,7 @@ class NpmTrending {
         if (!packages.length) return Promise.resolve({ all: { error: true } });
 
         // the request
-        let promise = rp({ uri: "https://api.npmjs.org/downloads/range/last-week/" + packages.join(","), json: true })
+        let promise = rp({ uri: `https://api.npmjs.org/downloads/range/${DateHelper.add(this.date, -7)}:${DateHelper.add(this.date, -1)}/${packages.join(",")}`, json: true })
             .then(res => {
                 // mark as fetched
                 packages.forEach(pkg => {
@@ -377,8 +383,8 @@ class NpmTrending {
         this._writeFiles();
 
         let files = readdirSync(NpmTrending.TEMP_DIR);
-        let infoFiles = files.filter(file => file.indexOf(NpmTrending.INFO_DB_PREFIX) > -1);
-        let statFiles = files.filter(file => file.indexOf(NpmTrending.STAT_DB_PREFIX) > -1);
+        let infoFiles = files.filter(file => file.indexOf(NpmTrending.INFO_DB_PREFIX(this.date)) > -1);
+        let statFiles = files.filter(file => file.indexOf(NpmTrending.STAT_DB_PREFIX(this.date)) > -1);
 
         let infoDb = {};
         let statDb = {};
@@ -393,10 +399,8 @@ class NpmTrending {
             Object.assign(statDb, readJsonSync(joinPath(NpmTrending.TEMP_DIR, file)));
         }
 
-        let date = new Date().toISOString().split("T")[0];
-
-        let infoDbFile = joinPath(NpmTrending.DATA_DIR, NpmTrending.INFO_DB_PREFIX + ".json");
-        let statDbFile = joinPath(NpmTrending.DATA_DIR, NpmTrending.STAT_DB_PREFIX + ".json");
+        let infoDbFile = joinPath(NpmTrending.DATA_DIR, NpmTrending.INFO_DB_PREFIX(this.date) + ".json");
+        let statDbFile = joinPath(NpmTrending.DATA_DIR, NpmTrending.STAT_DB_PREFIX(this.date) + ".json");
         ensureFileSync(infoDbFile);
         ensureFileSync(statDbFile);
 
@@ -407,7 +411,7 @@ class NpmTrending {
         removeSync(NpmTrending.TEMP_DIR);
 
         // update message
-        writeFileSync(NpmTrending.MESSAGE_FILE, `We have finished the job for ${date}! ${this.fetched.total} packages fetched today.`, "utf-8");
+        writeFileSync(NpmTrending.MESSAGE_FILE, `We have finished the job for ${this.date}! ${this.fetched.total} packages fetched today.`, "utf-8");
 
         return Promise.resolve();
     }
