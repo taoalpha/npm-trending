@@ -17,9 +17,8 @@ let dataPath = join(__dirname, "data", "stat-" + DateHelper.today + ".json");
 if (pathExistsSync(dataPath)) {
 
     let generator = new Generator();
-    let endDate = new Date();
+    let endDate = new Date(DateHelper.today);
     date.setDate(endDate.getDate() - 1);
-
 
     while (date < endDate) {
         generator.generate(date.toISOString().split("T")[0]);

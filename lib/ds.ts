@@ -29,6 +29,8 @@ export interface Package {
     inc?: number,
     change?: number,
     numVersions?: number,
+    numDependents?: number,
+    numDevDependents?: number,
     created?: string,
     modified?: string,
     toJSON?: () => any
@@ -187,6 +189,10 @@ export class Analyze {
             })
         }
 
+        // fill in dependents info
+        if (typeof this.infoDb[pkg.name].dependentCount !== "undefined") pkgToAdd.numDependents = this.infoDb[pkg.name].dependentCount;
+        if (typeof this.infoDb[pkg.name].devDependentCount !== "undefined") pkgToAdd.numDevDependents = this.infoDb[pkg.name].devDependentCount;
+
         // add versions
         pkgToAdd.versions = this.infoDb[pkg.name].time || {};
 
@@ -225,6 +231,23 @@ export class Analyze {
 
     // TODO: maybe create a shared wash method with getTop to clean the data and make it ready to process
     getTopDep(K: number, date: string, options: GetTopOptions) {
+        let packages: Package[] = this.keys.reduce((acc, key) => {
+            if (!options.minDownload || this.statDb[key][date] > options.minDownload) {
+                let pkgToAdd = this._fillInPackage({ name: key, stat: this.statDb[key] }, date);
+                acc.push(pkgToAdd);
+            }
+            return acc;
+        }, []);
+
+        let topKDependent = packages
+            .sort((pkgA, pkgB): number => pkgB.numDependents - pkgA.numDependents)
+            .slice(0, K);
+
+        let topKDevDependent = packages
+            .sort((pkgA, pkgB): number => pkgB.numDevDependents - pkgA.numDevDependents)
+            .slice(0, K);
+
+        return {top: topKDependent, topDev: topKDevDependent};
     }
 }
 
@@ -235,3 +258,4 @@ export class Analyze {
 // console.log(new Analyze("2018-09-11").getNewestPkg(10))
 // console.log(new Analyze("2018-09-11").getTopNotUpdatedPkg(10))
 // console.log(new Analyze("2018-09-11").getTopRecentUpdatedPkg(10))
+console.log(new Analyze("2018-09-16").getTopDep(10, "2018-09-15", {minDownload: 100}));

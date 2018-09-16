@@ -450,19 +450,28 @@ class NpmTrending {
 
         if (type === "stat") {
             // set failed to done (allow only one retry)
-            packages.forEach(pkg => {
-                if (this.fetched.packages[pkg] === FetchStatus.Failed) this.fetched.packages[pkg] = FetchStatus.Over
-            });
-
             // mark as failed
             packages.forEach(pkg => {
-                if (this.fetched.packages[pkg] !== FetchStatus.Over) this.fetched.packages[pkg] = FetchStatus.Failed
+                if (this.fetched.packages[pkg] === FetchStatus.Failed) {
+                    this.fetched.packages[pkg] = FetchStatus.Over
+                }
+
+                // mark rest as Fail and push them into queue
+                if (this.fetched.packages[pkg] !== FetchStatus.Over) {
+                    this.fetched.packages[pkg] = FetchStatus.Failed
+                    this.queue.push(pkg);
+                }
             });
         } else {
             // allow one retry
             if (this.fetched.packages[packages[0]] === FetchStatus.InfoFetchFailed) this.fetched.packages[packages[0]] = FetchStatus.InfoFetchOver;
-            else this.fetched.packages[packages[0]] === FetchStatus.InfoFetchFailed;
+            else {
+                this.fetched.packages[packages[0]] === FetchStatus.InfoFetchFailed;
+                this.queue.push(packages[0]);
+            }
         }
+
+        this.queue = this._unique(this.queue);
     }
 
     // ready to concat all files
@@ -479,7 +488,22 @@ class NpmTrending {
 
         while (infoFiles.length) {
             let file = infoFiles.pop();
-            Object.assign(infoDb, readJsonSync(joinPath(NpmTrending.TEMP_DIR, file)));
+            // can not just override, since different data files may have same package with different content(because of dependentCount)
+            let data = readJsonSync(joinPath(NpmTrending.TEMP_DIR, file));
+            Object.keys(data).forEach(key => {
+                // if not exists, assign the value
+                if (!infoDb[key]) return infoDb[key] = data[key];
+
+                // use the one with more fields
+                if (Object.keys(data[key]).length < Object.keys(infoDb[key]).length) {
+                    infoDb[key].dependentCount += data[key].dependentCount;
+                    infoDb[key].devDependentCount += data[key].devDependentCount;
+                } else {
+                    data[key].dependentCount += infoDb[key].dependentCount;
+                    data[key].devDependentCount += infoDb[key].devDependentCount;
+                    infoDb[key] = data[key];
+                }
+            });
         }
 
         while (statFiles.length) {

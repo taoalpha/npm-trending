@@ -255,7 +255,7 @@ ${this.renderCategory({
     // render new packages modal
     renderNewPackage(data = this.data) {
         if (!data.dayNew || !data.dayNew.length) return;
-        this.modalContentContainer.innerHTML += `<div id="new-package-modal">${this.renderCategory({
+        this.modalContentContainer.innerHTML = `<div id="new-package-modal">${this.renderCategory({
             id: "new",
             title: `New Packages Fetched (${data.dayNew.length} added)`,
             date: data.date
