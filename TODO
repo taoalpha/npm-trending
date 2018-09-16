@@ -5,6 +5,7 @@ I will keep NPM trending as a serverless site, so some features require visitors
 - consider dependencies too when calculate trends, or as a separate column
 - num of packages created distributed by months
 - still a miss between `total` and statDb.length, why ?
+- - possibly caused by duplicate packages added in queue
 - responsive
 
 #### Done

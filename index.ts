@@ -187,7 +187,7 @@ class NpmTrending {
 
         // parse seed file, remove done / over
         ensureFileSync(NpmTrending.SEED_FILE);
-        this.queue = (readFileSync(NpmTrending.SEED_FILE, 'utf8')).split(",").map(v => v.trim()).filter(v => this._shouldFetch(v));
+        this.queue = this._unique((readFileSync(NpmTrending.SEED_FILE, 'utf8')).split(",").map(v => v.trim()).filter(v => this._shouldFetch(v)));
 
         console.log(`Currently queue length: ${this.queue.length}, current fetched: ${this.fetched.total}, recorded 404s: ${Object.keys(this.notFound).length}`);
 
@@ -209,6 +209,10 @@ class NpmTrending {
             });
     }
 
+    private _unique(arr: string[]): string[] {
+        return Array.from(new Set(arr));
+    }
+
     private _shouldFetch(pkg: string): boolean {
         let canFetch = true;
         if (this.notFound[pkg]) {
@@ -220,8 +224,8 @@ class NpmTrending {
         return canFetch &&
             // keep new packages (not recorded in fetched)
             (!this.fetched.packages[pkg] ||
-                // keep pkg not Finished(Done or Over)
-                !(this.fetched.packages[pkg] === FetchStatus.Done || this.fetched.packages[pkg] === FetchStatus.Over)
+                // keep pkg failed to fetch info or stat(but not over)
+                (this.fetched.packages[pkg] === FetchStatus.Failed || this.fetched.packages[pkg] === FetchStatus.InfoFetchFailed)
             )
     }
 
@@ -291,6 +295,9 @@ class NpmTrending {
                             this.infoDb[dep].devDependentCount++;
                             if (this._shouldFetch(dep)) this.queue.push(dep);
                         });
+
+                        // remove duplicates
+                        this.queue = this._unique(this.queue);
                     }
                 });
 
@@ -366,6 +373,7 @@ class NpmTrending {
             .then(res => {
                 // mark as fetched
                 this.fetched.packages[pkg] = FetchStatus.Done;
+                // console.log("single: ", pkg, this.fetched.total);
                 this.fetched.total++;
                 return { [pkg]: res };
             })
@@ -395,6 +403,7 @@ class NpmTrending {
                 // mark as fetched
                 packages.forEach(pkg => {
                     this.fetched.packages[pkg] = FetchStatus.Done;
+                    // console.log("multiple: ", pkg, this.fetched.total);
                     this.fetched.total++;
                 });
                 return res;
