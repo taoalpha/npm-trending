@@ -17,7 +17,7 @@
 
 import * as Promise from 'bluebird';
 import * as rp from "request-promise";
-import { readJsonSync, ensureFileSync, writeJsonSync, readFileSync, writeFileSync, readdirSync, removeSync, pathExistsSync } from "fs-extra";
+import { readJsonSync, ensureFileSync, writeJsonSync, readFileSync, writeFileSync, readdirSync, removeSync, pathExistsSync, writeFile } from "fs-extra";
 import { Once } from "lodash-decorators";
 import { join as joinPath } from "path";
 import { ServerPkgStat, PackageStat, PackageInfo, FetchHistory, FetchStatus, PKG_NOT_FOUND} from "./types";
@@ -155,10 +155,7 @@ class NpmTrending {
         writeJsonSync(NpmTrending.PKG_NOT_FOUND_FILE, this.notFound);
 
         // update seed
-        let seed = "";
-        if (this.queue.length) seed += this.queue.join(",");
-        else seed = Object.keys(this.statDb).join(",");  // default seed: will be used if no queue, it will be used for next day's initial fetch, the idea is all packages previous fetched should be included at least :)
-        writeFileSync(NpmTrending.SEED_FILE, seed, "utf-8");
+        writeFileSync(NpmTrending.SEED_FILE, this.queue.join(","), "utf-8");
 
         // update message
         writeFileSync(NpmTrending.MESSAGE_FILE, `Job ${this.fetched.count} fetch finished! ${this.fetched.total - this._lastFetched} packages fetched this time(${this.date}).`, "utf-8");
@@ -510,6 +507,9 @@ class NpmTrending {
             let file = statFiles.pop();
             Object.assign(statDb, readJsonSync(joinPath(NpmTrending.TEMP_DIR, file)));
         }
+
+        // default seed: will be used if no queue, it will be used for next day's initial fetch, the idea is all packages previous fetched should be included at least :)
+        writeFileSync(NpmTrending.SEED_FILE, Object.keys(this.statDb).join(","), "utf-8");
 
         let infoDbFile = joinPath(NpmTrending.DATA_DIR, NpmTrending.INFO_DB_PREFIX(this.date) + ".json");
         let statDbFile = joinPath(NpmTrending.DATA_DIR, NpmTrending.STAT_DB_PREFIX(this.date) + ".json");
