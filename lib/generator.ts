@@ -18,6 +18,8 @@ interface DailyReport {
     dayChange: Package[];
     dayTop: Package[];
     dayNew?: Package[];
+    dayDep?: Package[];
+    dayDevDep?: Package[];
 }
 
 
@@ -35,18 +37,27 @@ export class Generator {
         let {top, topIncrease, topChange} = this.analyze.getTop(25, date, {
             minDownload: 100
         });
+        let {topDep, topDevDep} = this.analyze.getTopDep(25, date, {
+            minDownload: 100
+        });
         let dayData : DailyReport = {
             date: date,
             title: "Npm Trending Report",
             total: this.analyze.total(),
             dayInc: topIncrease,
             dayChange: topChange,
-            dayTop:top
+            dayTop: top
         };
 
         // dayNew added after 09/05
         if (DateHelper.compare(date, "2018-09-05") === 1) {
             dayData.dayNew = this.analyze.getDiff(date)
+        }
+
+        // dayDep and dayDevDep adde after 9/15
+        if (DateHelper.compare(date, "2018-09-14") === 1) {
+            dayData.dayDep = topDep;
+            dayData.dayDevDep = topDevDep;
         }
 
         let filePath = join(Generator.REPORT_DIR, "pkg-" + date + ".json");

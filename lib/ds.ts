@@ -247,7 +247,7 @@ export class Analyze {
             .sort((pkgA, pkgB): number => pkgB.numDevDependents - pkgA.numDevDependents)
             .slice(0, K);
 
-        return {top: topKDependent, topDev: topKDevDependent};
+        return {topDep: topKDependent, topDevDep: topKDevDependent};
     }
 }
 
@@ -258,4 +258,4 @@ export class Analyze {
 // console.log(new Analyze("2018-09-11").getNewestPkg(10))
 // console.log(new Analyze("2018-09-11").getTopNotUpdatedPkg(10))
 // console.log(new Analyze("2018-09-11").getTopRecentUpdatedPkg(10))
-console.log(new Analyze("2018-09-16").getTopDep(10, "2018-09-15", {minDownload: 100}));
+// console.log(new Analyze("2018-09-16").getTopDep(10, "2018-09-15", {minDownload: 100}));

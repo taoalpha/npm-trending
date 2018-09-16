@@ -66,76 +66,83 @@ header {
     }
 }
 
-// category header
-.catHeader {
-    height: 30px;
-    line-height: 30px;
-    text-align: center;
-    font-size: 16px;
-    font-weight: bold;
-    color: white;
-    position: fixed;
-    top: 50px;
-}
-
-.pkgCard {
-    background-color: #fff;
-    margin: 10px auto;
-    width: 90%;
-    border-radius: 2%;
-    padding: 10px;
-    background-color: #fff;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    
-    &.collapse {
-        height: 50px;
+article {
+    // category header
+    $headerHeight: 30px;
+    .catHeader {
+        height: $headerHeight;
+        line-height: $headerHeight;
+        text-align: center;
+        font-size: $headerHeight / 2;
+        font-weight: bold;
+        color: white;
+        position: relative;
+        width: 100%;
     }
     
-    &.collapse .pkgDesc {
-        visibility: hidden;
-    }
-    &.collapse .sparkline {
-        visibility: hidden;
-    }
-    &.collapse .pkgInfo {
-        visibility: hidden;
-    }
-    
-    /* sparkline */
-    & .sparkline {
-        height: 100px;
-    }
-    
-    .pkgTitle {
-        cursor: pointer;
-        
-        a {
-            max-width: 70%;
-            text-overflow: ellipsis;
-            display: inline-block;
-            white-space: nowrap;
+    .cards {
+        padding-bottom: $headerHeight;
+        overflow: scroll;
+        height: 100%;
+        .pkgCard {
+            background-color: #fff;
+            margin: 10px auto;
+            width: 90%;
+            border-radius: 2%;
+            padding: 10px;
+            background-color: #fff;
             overflow: hidden;
+            text-overflow: ellipsis;
+            
+            &.collapse {
+                height: 50px;
+            }
+            
+            &.collapse .pkgDesc {
+                visibility: hidden;
+            }
+            &.collapse .sparkline {
+                visibility: hidden;
+            }
+            &.collapse .pkgInfo {
+                visibility: hidden;
+            }
+            
+            /* sparkline */
+            & .sparkline {
+                height: 100px;
+            }
+            
+            .pkgTitle {
+                cursor: pointer;
+                
+                a {
+                    max-width: 70%;
+                    text-overflow: ellipsis;
+                    display: inline-block;
+                    white-space: nowrap;
+                    overflow: hidden;
+                }
+                
+                span {
+                    float: right;
+                    font-size: 15px;
+                    line-height: 25px;
+                }
+            }
+            
+            .pkgDesc {
+                padding: 10px 0;
+            }
+            .pkgInfo span {
+                font-size: 15px;
+                color: #aaa;
+                margin-right: 10px;
+            }
+            
         }
-        
-        span {
-            float: right;
-            font-size: 15px;
-            line-height: 25px;
-        }
     }
-    
-    .pkgDesc {
-        padding: 10px 0;
-    }
-    .pkgInfo span {
-        font-size: 15px;
-        color: #aaa;
-        margin-right: 10px;
-    }
-
 }
-
 
 /* navigation: left, right */
 .navigation {
@@ -162,11 +169,19 @@ header {
 
 // content and modals
 #content, #modals {
-    padding-top: 80px;
+    padding-top: 50px;
     width: 100%;
-    display: flex;
     height: 100%;
-    overflow: hidden;
+    overflow-y: hidden;
+    overflow-x: scroll;
+
+    > div {
+        display: flex;
+        height: 100%;
+    }
+    .col-5 {
+        width: 33.333% * 5;
+    }
 }
 
 // content
@@ -174,18 +189,14 @@ header {
     flex: 1;
     order: 1;
     height: 100%;
-    overflow: scroll;
     position: relative;
     border-right: 1px solid #ddd;
 }
 
 #content {
-    .catHeader {
-        width: 33.33%;
-    }
-
     $emptyFieldHeight: 60px;
     .empty-data {
+        margin-top: 50px;
         width: 500px;
         margin: 0 auto;
         background: rgba(255, 255, 255, 0.7);
@@ -212,7 +223,7 @@ header {
         cursor: pointer;
         padding: 10px;
     }
-
+    
     .content-container {
         overflow: scroll;
         width: 100%;
@@ -223,25 +234,18 @@ header {
         width: 50%;
         margin: 0 auto;
         
-        .catHeader {
-            left: 27.5%;
-            width: 45%;
-            top: 30px;
-        }
-        
-        
         article {
             border-right: none;
         }
     }
-
+    
     // version-history chart modal
     .version-history {
         text-align: center;
         width: 90%;
         margin: 0 auto;
         color: white;
-
+        
         div {
             height: 150px;
             background: white;

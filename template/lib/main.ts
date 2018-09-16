@@ -86,7 +86,9 @@ class NpmTrending {
     doesShowBefore(pkg, category, data) {
         if (category === "top") return false;
         if (category === "inc") return data.dayTop.some(p => p.name === pkg.name);
-        if (category === "change") return data.dayTop.some(p => p.name === pkg.name) || data.dayInc.some(p => p.name === pkg.name);
+        if (category === "change") return ["dayTop", "dayInc"].some(name => data[name].some(p => p.name === pkg.name));
+        if (category === "dep") return ["dayTop", "dayInc", "dayChange"].some(name => data[name].some(p => p.name === pkg.name));
+        if (category === "devDep") return ["dayTop", "dayInc", "dayChange", "dayDep"].some(name => data[name].some(p => p.name === pkg.name));
         return false;
     }
 
@@ -94,6 +96,7 @@ class NpmTrending {
         return `
 <article class="${category.id}">
     <div class="catHeader" style="background-color: #33a1d6;">${category.title} @ ${DateHelper.getDateString(category.date)}</div>
+    <div class="cards">
     ${
             data.map(pkg => `
         <div class="pkgCard ${this.doesShowBefore(pkg, category.id, _data) ? "collapse" : "expand"}">
@@ -114,12 +117,13 @@ class NpmTrending {
                 ` : ""}
                 <span><i class="fa fa-download"> ${Helpers.prettyNumber(pkg[category.date])}</i></span>
                 ${pkg.versions && category.id !== "new" ? `<span class="fa fa-history pointer" data-pkg="${pkg.name}"></span>` : ""}
-                <span><a href="https://www.npmjs.com/browse/depended/${pkg.name}" target="_blank"><i class="fa fa-tree"> Dep</i></a></span>
+                <span><a href="https://www.npmjs.com/browse/depended/${pkg.name}" target="_blank" title="${pkg.numDependents ? `among all packages we fetched, ${pkg.numDependents} packages depend on it directly, ${pkg.numDevDependents} packages depend on it as a development dependency` : ""}"><i class="fa fa-tree"> Dep</i></a></span>
             </div>
             <div class="share"></div>
         </div>
       `).join("")
             }
+    </div>
 </article>
 `;
     }
@@ -129,6 +133,7 @@ class NpmTrending {
             return `<div class="empty-data"><span>No data available for this day, possibly due to data issues in npm registry API.</span></div>`;
         }
         return `
+<div class="${data.dayDep ? "col-5" : "col-3"}">
 ${this.renderCategory({
                 id: "top",
                 title: "Top Downloads",
@@ -144,6 +149,17 @@ ${this.renderCategory({
                 title: "Top Increase Percentage",
                 date: data.date
             }, data.dayChange, data)}
+${data.dayDep ? this.renderCategory({
+                id: "dep",
+                title: "Most Dependents",
+                date: data.date
+            }, data.dayDep, data) : ""}
+${data.dayDevDep ? this.renderCategory({
+                id: "devDep",
+                title: "Most DevDependents",
+                date: data.date
+            }, data.dayDevDep, data) : ""}
+</div>
 `;
     }
 
@@ -249,6 +265,9 @@ ${this.renderCategory({
         data.dayTop.forEach(pkg => renderSparkline(pkg, "top"));
         data.dayInc.forEach(pkg => renderSparkline(pkg, "inc"));
         data.dayChange.forEach(pkg => renderSparkline(pkg, "change"));
+
+        if (data.dayDep) data.dayDep.forEach(pkg => renderSparkline(pkg, "dep"));
+        if (data.dayDevDep) data.dayDevDep.forEach(pkg => renderSparkline(pkg, "devDep"));
     }
 
     // render modals
