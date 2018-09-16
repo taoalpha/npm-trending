@@ -196,9 +196,8 @@ article {
 #content {
     $emptyFieldHeight: 60px;
     .empty-data {
-        margin-top: 50px;
         width: 500px;
-        margin: 0 auto;
+        margin: 50px auto;
         background: rgba(255, 255, 255, 0.7);
         border-radius: 10px;
         height: $emptyFieldHeight;

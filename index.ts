@@ -509,7 +509,7 @@ class NpmTrending {
         }
 
         // default seed: will be used if no queue, it will be used for next day's initial fetch, the idea is all packages previous fetched should be included at least :)
-        writeFileSync(NpmTrending.SEED_FILE, Object.keys(this.statDb).join(","), "utf-8");
+        writeFileSync(NpmTrending.SEED_FILE, Object.keys(statDb).join(","), "utf-8");
 
         let infoDbFile = joinPath(NpmTrending.DATA_DIR, NpmTrending.INFO_DB_PREFIX(this.date) + ".json");
         let statDbFile = joinPath(NpmTrending.DATA_DIR, NpmTrending.STAT_DB_PREFIX(this.date) + ".json");
