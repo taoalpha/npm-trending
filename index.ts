@@ -556,4 +556,4 @@ export class NpmTrending {
     }
 }
 
-// let npm = new NpmTrending();
+let npm = new NpmTrending();
