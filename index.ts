@@ -23,7 +23,7 @@ import { join as joinPath } from "path";
 import { ServerPkgStat, PackageStat, PackageInfo, FetchHistory, FetchStatus, PKG_NOT_FOUND} from "./types";
 import { DateHelper } from './lib/helpers';
 
-class NpmTrending {
+export class NpmTrending {
     private infoDb : {
         [key: string]: PackageInfo
     } = {};
@@ -248,7 +248,6 @@ class NpmTrending {
         }
 
         // DEBUG - see how fast the queue can go
-        // console.log(this.queue.length);
         if ((this.fetched.total - this._lastFetched) % 100 === 0) {
             console.log(`${this.fetched.total - this._lastFetched} packages fetched! ${this._fetchErrors} errors occurred!`)
         }
@@ -370,7 +369,6 @@ class NpmTrending {
             .then(res => {
                 // mark as fetched
                 this.fetched.packages[pkg] = FetchStatus.Done;
-                // console.log("single: ", pkg, this.fetched.total);
                 this.fetched.total++;
                 return { [pkg]: res };
             })
@@ -391,8 +389,11 @@ class NpmTrending {
         packages = packages.filter(pkg => this.fetched.packages[pkg] !== FetchStatus.Done
             && this.fetched.packages[pkg] !== FetchStatus.Over
             && this.fetched.packages[pkg] !== FetchStatus.Pending);
-
+        
         if (!packages.length) return Promise.resolve({ all: { error: true } });
+
+        // fallback to single fetch if its length is 1
+        if (packages.length) return this.fetchPkgStat(packages[0]);
 
         // the request
         let promise = rp({ uri: NpmTrending.PACKAGE_STAT_API(packages, `${DateHelper.add(this.date, -7)}:${DateHelper.add(this.date, -1)}`), json: true })
@@ -400,7 +401,6 @@ class NpmTrending {
                 // mark as fetched
                 packages.forEach(pkg => {
                     this.fetched.packages[pkg] = FetchStatus.Done;
-                    // console.log("multiple: ", pkg, this.fetched.total);
                     this.fetched.total++;
                 });
                 return res;
@@ -508,9 +508,6 @@ class NpmTrending {
             Object.assign(statDb, readJsonSync(joinPath(NpmTrending.TEMP_DIR, file)));
         }
 
-        // default seed: will be used if no queue, it will be used for next day's initial fetch, the idea is all packages previous fetched should be included at least :)
-        writeFileSync(NpmTrending.SEED_FILE, Object.keys(statDb).join(","), "utf-8");
-
         let infoDbFile = joinPath(NpmTrending.DATA_DIR, NpmTrending.INFO_DB_PREFIX(this.date) + ".json");
         let statDbFile = joinPath(NpmTrending.DATA_DIR, NpmTrending.STAT_DB_PREFIX(this.date) + ".json");
         ensureFileSync(infoDbFile);
@@ -522,11 +519,41 @@ class NpmTrending {
         // remove _temp
         removeSync(NpmTrending.TEMP_DIR);
 
+        // update seed
+        // default seed: will be used if no queue, it will be used for next day's initial fetch, the idea is all packages previous fetched should be included at least :)
+        let seeds = Object.keys(infoDb);
+        let randomIndices = new Array(seeds.length > 10 ? 10 : seeds.length).fill(null).map(() => Math.floor(Math.random() * seeds.length) + 1);
+
         // update message
         writeFileSync(NpmTrending.MESSAGE_FILE, `We have finished the job for ${this.date}! ${this.fetched.total} packages fetched today.`, "utf-8");
 
-        return Promise.resolve();
+        return Promise.all(randomIndices.map(idx => this._randomSeed(seeds[idx])))
+            .then(data => {
+                data.forEach(dependedSeeds => {
+                    dependedSeeds.forEach(s => seeds.push(s));
+                });
+
+                seeds = this._unique(seeds);
+
+                writeFileSync(NpmTrending.SEED_FILE, seeds.join(","), "utf-8");
+
+                console.log("next round seed length: ", seeds.length);
+                return;
+            });
+    }
+
+    private _randomSeed(pkg: string) : Promise<string[]> {
+        return rp("https://www.npmjs.com/browse/depended/" + pkg)
+            .then(d => {
+                let reg = /\/package\/(.*?)\"/g;
+                let res = [], group;
+                while(group = reg.exec(d)){
+                    if (group[1]) res.push(group[1]);
+                }
+                return res;
+            })
+            .catch(e => ([]));
     }
 }
 
-let npm = new NpmTrending();
+// let npm = new NpmTrending();

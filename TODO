@@ -20,3 +20,4 @@ I will keep NPM trending as a serverless site, so some features require visitors
 - [x] add `packages depend on this package`, refer to `https://www.npmjs.com/browse/depended/${pkg}` page
 - [x] still a miss between `total` and statDb.length, why ? => due to added packages pushed into queue again :(, moved queue to a set to remove duplicates
 - [x] consider dependencies too when calculate trends, or as a separate column
+- [x] add random packages to seed to increase # packages we can fetch
