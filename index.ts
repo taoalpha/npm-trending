@@ -393,7 +393,7 @@ export class NpmTrending {
         if (!packages.length) return Promise.resolve({ all: { error: true } });
 
         // fallback to single fetch if its length is 1
-        if (packages.length) return this.fetchPkgStat(packages[0]);
+        if (packages.length === 1) return this.fetchPkgStat(packages[0]);
 
         // the request
         let promise = rp({ uri: NpmTrending.PACKAGE_STAT_API(packages, `${DateHelper.add(this.date, -7)}:${DateHelper.add(this.date, -1)}`), json: true })
