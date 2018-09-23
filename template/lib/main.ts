@@ -328,9 +328,10 @@ ${data.dayDevDep ? this.renderCategory({
 
 
 // the date, default to today if not set from querystring
-let theDate = Helpers.getParameterByName("date") || DateHelper.today;
+let theDate = Helpers.getParameterByName("date") || DateHelper.add(DateHelper.today, -1);
 
-if (isNaN(new Date(theDate).getTime())) theDate = DateHelper.today;
+if (isNaN(new Date(theDate).getTime())) theDate = DateHelper.add(DateHelper.today, -1);
+
 
 // fetch data
 Helpers.ready(() => {

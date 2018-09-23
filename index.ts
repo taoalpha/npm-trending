@@ -94,7 +94,7 @@ const npmJob = (date: string = DateHelper.today) : Promise<any> => {
             } else {
                 fetched = false;
                 let data = {
-                    "date": date,
+                    "date": DateHelper.add(date, -1),
                     "title": "Npm Trending Report",
                     "total": 0,
                     "dayInc": [],
