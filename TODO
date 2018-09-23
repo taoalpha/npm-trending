@@ -2,11 +2,12 @@ I will keep NPM trending as a serverless site, so some features require visitors
 
 
 #### Pending
-- when retry previous date, re-generate on the date after that :)
 - num of packages created distributed by months
 - responsive
 
 #### Done
+- [x] special icon for new package join the top
+- [x] when retry previous date, re-generate on the date after that :)
 - [x] automatically retry on previous empty dates (i.e: if api is not ready for that day before)
 - [x] rewrite to use subscribe / listener pattern, include the generator in the main flow
 - [x] add a mini graph to every package to show history trends, similar to what NPM has now (for a week)

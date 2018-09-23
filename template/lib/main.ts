@@ -49,8 +49,6 @@ class Helpers {
             el.classList.add(className);
         }
     }
-
-
 }
 
 
@@ -85,11 +83,11 @@ class NpmTrending {
     }
 
     doesShowBefore(pkg, category, data) {
-        if (category === "top") return false;
-        if (category === "inc") return data.dayTop.some(p => p.name === pkg.name);
-        if (category === "change") return ["dayTop", "dayInc"].some(name => data[name].some(p => p.name === pkg.name));
-        if (category === "dep") return ["dayTop", "dayInc", "dayChange"].some(name => data[name].some(p => p.name === pkg.name));
-        if (category === "devDep") return ["dayTop", "dayInc", "dayChange", "dayDep"].some(name => data[name].some(p => p.name === pkg.name));
+        if (category === "dayTop") return false;
+        if (category === "dayInc") return data.dayTop.some(p => p.name === pkg.name);
+        if (category === "dayChange") return ["dayTop", "dayInc"].some(name => data[name].some(p => p.name === pkg.name));
+        if (category === "dayDep") return ["dayTop", "dayInc", "dayChange"].some(name => data[name].some(p => p.name === pkg.name));
+        if (category === "dayDevDep") return ["dayTop", "dayInc", "dayChange", "dayDep"].some(name => data[name].some(p => p.name === pkg.name));
         return false;
     }
 
@@ -100,7 +98,7 @@ class NpmTrending {
     <div class="cards">
     ${
             data.map(pkg => `
-        <div class="pkgCard ${this.doesShowBefore(pkg, category.id, _data) ? "collapse" : "expand"}">
+        <div data-pkg="${pkg.name}" class="pkgCard ${this.doesShowBefore(pkg, category.id, _data) ? "collapse" : "expand"}">
             <h3 class="pkgTitle">
                 <a href="https://www.npmjs.com/package/${pkg.name}" target="_blank">${pkg.name}</a>
                 ${this.renderPkg(pkg, category)}
@@ -136,27 +134,27 @@ class NpmTrending {
         return `
 <div class="${data.dayDep ? "col-5" : "col-3"}">
 ${this.renderCategory({
-                id: "top",
+                id: "dayTop",
                 title: "Top Downloads",
                 date: data.date
             }, data.dayTop, data)}
 ${this.renderCategory({
-                id: "inc",
+                id: "dayInc",
                 title: "Top Increase Number",
                 date: data.date
             }, data.dayInc, data)}
 ${this.renderCategory({
-                id: "change",
+                id: "dayChange",
                 title: "Top Increase Percentage",
                 date: data.date
             }, data.dayChange, data)}
 ${data.dayDep ? this.renderCategory({
-                id: "dep",
+                id: "dayDep",
                 title: "Most Dependents",
                 date: data.date
             }, data.dayDep, data) : ""}
 ${data.dayDevDep ? this.renderCategory({
-                id: "devDep",
+                id: "dayDevDep",
                 title: "Most DevDependents",
                 date: data.date
             }, data.dayDevDep, data) : ""}
@@ -263,12 +261,12 @@ ${data.dayDevDep ? this.renderCategory({
         }
 
 
-        data.dayTop.forEach(pkg => renderSparkline(pkg, "top"));
-        data.dayInc.forEach(pkg => renderSparkline(pkg, "inc"));
-        data.dayChange.forEach(pkg => renderSparkline(pkg, "change"));
+        data.dayTop.forEach(pkg => renderSparkline(pkg, "dayTop"));
+        data.dayInc.forEach(pkg => renderSparkline(pkg, "dayInc"));
+        data.dayChange.forEach(pkg => renderSparkline(pkg, "dayChange"));
 
-        if (data.dayDep) data.dayDep.forEach(pkg => renderSparkline(pkg, "dep"));
-        if (data.dayDevDep) data.dayDevDep.forEach(pkg => renderSparkline(pkg, "devDep"));
+        if (data.dayDep) data.dayDep.forEach(pkg => renderSparkline(pkg, "dayDep"));
+        if (data.dayDevDep) data.dayDevDep.forEach(pkg => renderSparkline(pkg, "dayDevDep"));
     }
 
     // render modals
@@ -351,7 +349,7 @@ Helpers.ready(() => {
 
             // if no top, no need to render sparkline... since no data will be there
             if (!data.dayTop || data.dayTop.length <= 0) {
-                return;
+                return { prev: {}, cur: data };
             }
 
             // draw the sparkline
@@ -374,10 +372,31 @@ Helpers.ready(() => {
                     npmTrending.renderVersionHistory(pkgName);
                 });
             });
+
+            return (axios as any).get(`./reports/pkg-${DateHelper.add(theDate, -1)}.json`)
+                .then(res => ({
+                    prev: res.data,
+                    cur: data
+                }))
+        })
+        .then(({prev, cur}) => {
+            if (!prev.dayTop || !prev.dayTop.length) return;
+            if (!cur.dayTop || !cur.dayTop.length) return;
+
+            // add NEW icon for packages not in previous day's top
+            ["dayTop", "dayChange", "dayInc", "dayNew", "dayDep", "dayDevDep"].forEach(category => {
+                if (cur[category]) {
+                    cur[category].filter(pkgC => !(prev[category].some(pkgP => pkgP.name === pkgC.name)))
+                        .forEach(pkg => {
+                            Helpers.toggleClass(document.querySelector(`.${category} .pkgCard[data-pkg="${pkg.name}"]`), "new");
+                        })
+                }
+            })
         })
         .catch(function (error) {
             console.log(error);
-            NpmTrending.goTo();
+            // no jump since we allow navigation and default error page
+            // NpmTrending.goTo();
         });
 });
 
