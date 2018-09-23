@@ -58,6 +58,7 @@ class NpmTrending {
     private modals = document.getElementById("modals");
     modalContentContainer = document.querySelector("#modals .content-container");
     private packages: any = {};
+    private _newPkgColumn: HTMLElement;
 
     constructor(private data: any, private date: string = DateHelper.today) {
         data.dayTop.forEach(pkg => this.packages[pkg.name] = pkg);
@@ -274,22 +275,29 @@ ${data.dayDevDep ? this.renderCategory({
     // render new packages modal
     renderNewPackage(data = this.data) {
         if (!data.dayNew || !data.dayNew.length) return;
-        this.modalContentContainer.innerHTML = `<div id="new-package-modal">${this.renderCategory({
-            id: "new",
-            title: `New Packages Fetched (${data.dayNew.length} added)`,
-            date: data.date
-        }, data.dayNew, data)}</div>`;
+        if (this._newPkgColumn) {
+            this.modalContentContainer.innerHTML = "";
+            this.modalContentContainer.appendChild(this._newPkgColumn);
+        } else {
 
-        // draw sparkline and update event binding
-        if (data.dayNew && data.dayNew.length) data.dayNew.forEach(pkg => {
-            this.renderSparkline(document.querySelector(`#modals .new .download-history[data-pkg="${pkg.name}"]`), pkg);
-        });
+            this.modalContentContainer.innerHTML = `<div id="new-package-modal">${this.renderCategory({
+                id: "new",
+                title: `New Packages Fetched (${data.dayNew.length} added)`,
+                date: data.date
+            }, data.dayNew, data)}</div>`;
+
+            // draw sparkline and update event binding
+            if (data.dayNew && data.dayNew.length) data.dayNew.forEach(pkg => {
+                this.renderSparkline(document.querySelector(`#modals .new .download-history[data-pkg="${pkg.name}"]`), pkg);
+            });
+            this._newPkgColumn = document.getElementById("new-package-modal");
+
+            // bind event on new cards
+            NpmTrending.bindTitleEvent(document.querySelectorAll("#new-package-modal .pkgTitle"));
+        }
 
         // show modal
         NpmTrending.toggleModal();
-
-        // bind event on new cards
-        NpmTrending.bindTitleEvent(document.querySelectorAll("#new-package-modal .pkgTitle"));
     }
 
     static bindTitleEvent(els: any) {
