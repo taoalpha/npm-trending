@@ -73,9 +73,9 @@ class NpmTrending {
     }
 
     renderPkg(pkg, category) {
-        if (category.id === "inc") {
+        if (category.id === "dayInc") {
             return `<span class="fa fa-${pkg.status}"> ${Helpers.prettyNumber(pkg.inc)} (${(pkg.change * 100).toFixed(2)}%)</span>`;
-        } else if (category.id === "change") {
+        } else if (category.id === "dayChange") {
             return `<span class="fa fa-${pkg.status}"> ${(pkg.change * 100).toFixed(2)}% (${Helpers.prettyNumber(pkg.inc)})</span>`;
         } else {
             return `<span class="fa fa-${pkg.status}"> ${Helpers.prettyNumber(pkg[category.date])} (${Helpers.prettyNumber(pkg.inc)})</span>`;
