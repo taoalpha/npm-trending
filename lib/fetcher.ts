@@ -246,7 +246,7 @@ export class NpmTrending {
 
         // terminate this round if too many errors
         if (this._fetchErrors > NpmTrending.MAX_FETCH_ERRORS) {
-            this.emit("end", {msg: `Terminate because of too many errors: ${this._fetchErrors}!`} as EndEventRest);
+            this.emit("end", { msg: `Terminate because of too many errors: ${this._fetchErrors}!`, continue: true } as EndEventRest);
             return Promise.resolve();
         }
 
@@ -255,7 +255,7 @@ export class NpmTrending {
 
         // terminate if time's up
         if (Date.now() - this._startTime > NpmTrending.TIME_OUT) {
-            this.emit("end", {msg: "Terminate because of timeout!"} as EndEventRest);
+            this.emit("end", { msg: "Terminate because of timeout!", continue: true } as EndEventRest);
             return Promise.resolve();
         }
 

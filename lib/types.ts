@@ -84,7 +84,8 @@ export interface Listener {
 }
 
 export interface EndEventRest {
-    finish?: boolean;
+    finish?: boolean;  // true if finish this day's fetch job
+    continue?: boolean;  // true if finish this round but not all
     msg?: string;
     seeds?: string[];
     error?: Error;

@@ -5,7 +5,6 @@
   "main": "index.js",
   "scripts": {
     "fetch": "ts-node index.ts",
-    "generate": "ts-node generator.ts && npm run compile",
     "compile": "sass dist/lib/main.scss dist/lib/main.css && tsc --out dist/lib/main.js dist/lib/main.ts --lib 'dom, es2017' --skipLibCheck --target ES5 --module amd",
     "serve": "http-server ./dist",
     "deploy": "gh-pages -d dist -a"

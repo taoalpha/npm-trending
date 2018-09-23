@@ -1,15 +1,16 @@
 import * as Promise from 'bluebird';
 import { NpmTrending } from "./lib/fetcher";
-import { FetchStatus, EndEventRest } from "./lib/types";
+import { EndEventRest } from "./lib/types";
 import { DateHelper } from "./lib/helpers";
 import { copySync, pathExistsSync, writeJSONSync, ensureFileSync, readdirSync } from "fs-extra";
 import { Generator } from "./lib/generator";
 import { join } from "path";
+import * as ghPages from "gh-pages";
 
-NpmTrending.TIME_OUT = 2 * 1000;
-NpmTrending.MAX_NUM_PACKAGES = 100;
+// NpmTrending.TIME_OUT = 1 * 1000;
+// NpmTrending.MAX_NUM_PACKAGES = 100;
 
-const npmJob = (date: string = DateHelper.today) : Promise<NpmTrending> => {
+const npmJob = (date: string = DateHelper.today) : Promise<any> => {
     let promise = new Promise<NpmTrending>((resolve, reject) => {
 
         let npm = new NpmTrending(date);
@@ -27,6 +28,12 @@ const npmJob = (date: string = DateHelper.today) : Promise<NpmTrending> => {
 
             if (rest.error) console.log(rest.error);
 
+            // if has valid fetch: either it will continue, or its done with next round of seeds
+            if (rest.continue || rest.seeds) {
+                console.log(`so far, we have fetched ${n.total()} (${Object.keys(n.fetched).length}), this time, we fetched ${n.total(true)}, error: ${numErrors}`);
+                console.log(`${n.queue.length} pkg in our current queue`);
+            }
+
             // get stats on each status
             // let stats = Object.keys(n.fetched).reduce((prev, cur) => {
             //     prev[n.fetched[cur]] = prev[n.fetched[cur]] || 0;
@@ -34,8 +41,6 @@ const npmJob = (date: string = DateHelper.today) : Promise<NpmTrending> => {
             //     return prev;
             // }, {});
 
-            console.log(`so far, we have fetched ${n.total()} (${Object.keys(n.fetched).length}), this time, we fetched ${n.total(true)}, error: ${numErrors}`);
-            console.log(`${n.queue.length} pkg in our current queue`);
             // console.log(`Among all fetched packages:
             //     ${stats[FetchStatus.InfoFetching] || 0} is fetching info(expect to be 0),
             //     ${stats[FetchStatus.InfoFetchFailed] || 0} failed to fetch info, pending retry(expect to be 0),
@@ -51,11 +56,11 @@ const npmJob = (date: string = DateHelper.today) : Promise<NpmTrending> => {
             // if done with the day, start generating the report and push to github
             if (rest.finish) {
                 resolve(npm);
-            }
-
-            if (rest.error) {
+            } else {
+                // if error, or just finish this day's job, then don't continue to next
                 reject(rest.error);
             }
+
         });
 
         npm.on("fetchBatch", (n: NpmTrending) => {
@@ -65,33 +70,47 @@ const npmJob = (date: string = DateHelper.today) : Promise<NpmTrending> => {
             }
         });
 
+        console.log(`==========${date}==========`);
         npm.init();
     });
 
     return promise.then(npm => {
-        // run generator
-        // if data pkg not exists, do nothing
-        let dataPath = join(__dirname, "data", "stat-" + date + ".json");
-        if (pathExistsSync(dataPath)) {
+        return new Promise<any>((resolve, reject) => {
 
-            let generator = new Generator(date);
-            generator.generate(DateHelper.add(date, -1));
-        } else {
-            let data = {
-                "date": date,
-                "title": "Npm Trending Report",
-                "total": 0,
-                "dayInc": [],
-                "dayChange": [],
-                "dayTop": []
+            // run generator
+            // if data pkg not exists, do nothing
+            let fetched = true;
+            let dataPath = join(__dirname, "data", "stat-" + date + ".json");
+            if (pathExistsSync(dataPath)) {
+
+                let generator = new Generator(date);
+                generator.generate(DateHelper.add(date, -1));
+            } else {
+                fetched = false;
+                let data = {
+                    "date": date,
+                    "title": "Npm Trending Report",
+                    "total": 0,
+                    "dayInc": [],
+                    "dayChange": [],
+                    "dayTop": []
+                }
+                ensureFileSync(join(Generator.REPORT_DIR, "pkg-" + DateHelper.add(date, -1) + ".json"));
+                writeJSONSync(join(Generator.REPORT_DIR, "pkg-" + DateHelper.add(date, -1) + ".json"), data);
             }
-            ensureFileSync(join(Generator.REPORT_DIR, "pkg-" + DateHelper.add(date, -1) + ".json"));
-            writeJSONSync(join(Generator.REPORT_DIR, "pkg-" + DateHelper.add(date, -1) + ".json"), data);
-        }
 
-        // move over assets and template
-        copySync(join(__dirname, "template"), join(Generator.DIST_DIR));
-        return npm;
+            // move over assets and template
+            copySync(join(__dirname, "template"), join(Generator.DIST_DIR));
+
+            // do a deployment
+            ghPages.publish(join(__dirname, "dist"), {
+                add: true,  // only add
+                message: `daily report for ${date}!`
+            }, (error) => {
+                if (error) reject(error);
+                else resolve({fetched});
+            });
+        })
     });
 }
 
@@ -99,10 +118,20 @@ let start = "2018-09-01";
 let i = 0;
 let promise;
 
-while (new Date(DateHelper.add(start , i++)) <= new Date("2018-09-21")) {
-// while (new Date(DateHelper.add(start , i++)) <= new Date(DateHelper.today)) {
-    if (!pathExistsSync(join(NpmTrending.DATA_DIR, NpmTrending.INFO_DB_PREFIX(DateHelper.add(start, i - 1)) + ".json"))) {
-        if (promise) promise = promise.then(() => npmJob(DateHelper.add(start, i - 1)));
-        else promise = npmJob(DateHelper.add(start, i - 1));
-    }
+while (new Date(DateHelper.add(start, i++)) <= new Date(DateHelper.today)) {
+    ((i) => {
+        if (!pathExistsSync(join(NpmTrending.DATA_DIR, NpmTrending.INFO_DB_PREFIX(DateHelper.add(start, i - 1)) + ".json"))) {
+            if (promise) promise = promise.then(res => {
+                // don't continue to next date if last fetch finished with valid fetching
+                // TODO: should move message out of the fetcher to prevent message overwritten
+                // also should update circleCI no output timeout if we allow fetch next day immediately after this day finished
+                if (!res.fetched) return npmJob(DateHelper.add(start, i - 1))
+                else return {fetched: true};
+            });
+            else promise = npmJob(DateHelper.add(start, i - 1));
+
+            // ignore any rejections
+            promise.catch(e => 1);
+        }
+    })(i)
 }
