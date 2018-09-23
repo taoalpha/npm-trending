@@ -56,7 +56,7 @@ jobs:
           command: if [[ `git status --porcelain` ]]; then git add -A && git commit -m "$(tail -n 1 message)" && git push origin HEAD:master; fi;
           name: push changes
       - run: 
-          command: if [[ $(tail -n 1 message) = *"finished the job for"* ]]; then yarn run compile; fi;
+          command: if [[ $(tail -n 1 message) = *"finished the job for"* ]]; then yarn run compile && yarn run deploy; fi;
           name: deploy
 
 workflows:
