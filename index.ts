@@ -131,7 +131,7 @@ while (new Date(DateHelper.add(start, i++)) <= new Date(DateHelper.today)) {
             else promise = npmJob(DateHelper.add(start, i - 1));
 
             // ignore any rejections
-            promise.catch(e => 1);
+            promise.catch(console.log);
         }
     })(i)
 }

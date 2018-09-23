@@ -37,14 +37,14 @@ jobs:
             - node_modules
           key: v1-dependencies-{{ checksum "package.json" }}
 
+      # set committer
+      - run: git config --global user.email "CircleCI@CircleCI.com"
+      - run: git config --global user.name "CircleCI"
+
       # run fetch
       - run:
           command: yarn run fetch
           no_output_timeout: 6m
-
-      # set committer
-      - run: git config --global user.email "CircleCI@CircleCI.com"
-      - run: git config --global user.name "CircleCI"
 
       # store cache on .tmp
       - save_cache:
