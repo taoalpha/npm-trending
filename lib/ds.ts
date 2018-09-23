@@ -6,7 +6,7 @@
 
 import { readJsonSync, pathExists, pathExistsSync } from "fs-extra";
 import { join } from "path";
-import { PackageInfo, PackageStat } from "../types";
+import { PackageInfo, PackageStat } from "./types";
 import { DateHelper } from "./helpers";
 
 interface GetTopOptions {

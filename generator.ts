@@ -5,7 +5,7 @@
  */
 
 
-import { copySync, writeFileSync, readFileSync, pathExistsSync, writeJSONSync, ensureFileSync } from "fs-extra";
+import { copySync, pathExistsSync, writeJSONSync, ensureFileSync } from "fs-extra";
 import { Generator } from "./lib/generator";
 import { join } from "path";
 import { DateHelper } from "./lib/helpers";

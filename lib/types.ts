@@ -78,3 +78,14 @@ export interface PKG_NOT_FOUND {
     type: "info" | "stat",
 }
 
+
+export interface Listener {
+    (...args): void;
+}
+
+export interface EndEventRest {
+    finish?: boolean;
+    msg?: string;
+    seeds?: string[];
+    error?: Error;
+}

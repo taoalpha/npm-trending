@@ -25,15 +25,14 @@ interface DailyReport {
 
 export class Generator {
     private analyze: Analyze;
-    constructor(date: string = new Date().toISOString().split("T")[0]) {
+    constructor(private date: string = DateHelper.today) {
         this.analyze = new Analyze(date);
     };
 
     static DIST_DIR = join(__dirname, "..", "dist");
     static REPORT_DIR = join(Generator.DIST_DIR, "reports");
 
-    generate(date: string) {
-        if (!date) return;
+    generate(date: string = DateHelper.add(this.date, -1)) {
         let {top, topIncrease, topChange} = this.analyze.getTop(25, date, {
             minDownload: 100
         });
