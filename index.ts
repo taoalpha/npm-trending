@@ -85,6 +85,12 @@ const npmJob = (date: string = DateHelper.today) : Promise<any> => {
 
                 let generator = new Generator(date);
                 generator.generate(DateHelper.add(date, -1));
+
+                // and re-generate for the day after if its not today
+                if (DateHelper.add(date, 1) < DateHelper.today) {
+                    generator = new Generator(DateHelper.add(date, 1));
+                    generator.generate(date);
+                }
             } else {
                 fetched = false;
                 let data = {
