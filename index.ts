@@ -16,7 +16,8 @@ const npmJob = (date: string = DateHelper.today) : Promise<any> => {
         let npm = new NpmTrending(date);
 
         let numErrors = 0;
-        npm.on("error", (...args) => {
+        npm.on("error", (n, type, p, e) => {
+            console.log(type, p, e.message);
             numErrors++;
         });
 
