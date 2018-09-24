@@ -215,6 +215,9 @@ export class NpmTrending {
     }
 
     private _shouldFetch(pkg: string): boolean {
+        // invalid name
+        if(pkg.indexOf("_") === 0) return false;
+
         let canFetch = true;
         if (this._notFound[pkg]) {
             // don't re-fetch those 404 packages too soon
@@ -546,7 +549,9 @@ export class NpmTrending {
         return Promise.all(randomIndices.map(idx => this._randomSeed(seeds[idx])))
             .then(data => {
                 data.forEach(dependedSeeds => {
-                    dependedSeeds.forEach(s => seeds.push(s));
+                    dependedSeeds.forEach(s => {
+                        if (s.indexOf("_") !== 0) seeds.push(s);
+                    });
                 });
 
                 seeds = this._unique(seeds);
