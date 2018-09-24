@@ -6,6 +6,7 @@ I will keep NPM trending as a serverless site, so some features require visitors
 - responsive
 
 #### Done
+- [x] get top developers
 - [x] special icon for new package join the top
 - [x] when retry previous date, re-generate on the date after that :)
 - [x] automatically retry on previous empty dates (i.e: if api is not ready for that day before)

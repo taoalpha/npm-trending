@@ -84,7 +84,7 @@ article {
         padding-bottom: $headerHeight;
         overflow: scroll;
         height: 100%;
-        .pkgCard {
+        .pkgCard, .authorCard {
             background-color: #fff;
             margin: 10px auto;
             width: 90%;
@@ -128,7 +128,7 @@ article {
                 height: 100px;
             }
             
-            .pkgTitle {
+            .pkgTitle, .authorTitle {
                 cursor: pointer;
                 
                 a {
@@ -137,6 +137,13 @@ article {
                     display: inline-block;
                     white-space: nowrap;
                     overflow: hidden;
+                }
+
+                span.extra {
+                    font-size: 12px;
+                    color: #aaa;
+                    float: none;
+                    vertical-align: baseline;
                 }
                 
                 span {
@@ -196,6 +203,12 @@ article {
     }
     .col-5 {
         width: 33.333% * 5;
+    }
+    .col-6 {
+        width: 33.333% * 6;
+    }
+    .col-8 {
+        width: 33.333% * 8;
     }
 }
 

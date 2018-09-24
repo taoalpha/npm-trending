@@ -65,7 +65,7 @@ class NpmTrending {
         if (data.dayNew) data.dayNew.forEach(pkg => this.packages[pkg.name] = pkg);
     }
 
-    renderHeader(data: any) {
+    renderHeader(data: any = this.data) {
         return `
 <a href="https://github.com/taoalpha/npm-trending/" target="_blank">${data.title}</a> @ ${DateHelper.getDateString(data.date)}
 <span class="total-package ${data.dayNew && data.dayNew.length ? "pointer" : ""}">(total : ${data.total})</span>
@@ -74,15 +74,26 @@ class NpmTrending {
 
     renderPkg(pkg, category) {
         if (category.id === "dayInc") {
-            return `<span class="fa fa-${pkg.status}"> ${Helpers.prettyNumber(pkg.inc)} (${(pkg.change * 100).toFixed(2)}%)</span>`;
+            return `<span class="fa fa-${pkg.status}"> ${Helpers.prettyNumber(pkg.inc)} (${Helpers.prettyNumber(+((pkg.change * 100).toFixed(2)))}%)</span>`;
         } else if (category.id === "dayChange") {
-            return `<span class="fa fa-${pkg.status}"> ${(pkg.change * 100).toFixed(2)}% (${Helpers.prettyNumber(pkg.inc)})</span>`;
+            return `<span class="fa fa-${pkg.status}"> ${Helpers.prettyNumber(+(pkg.change * 100).toFixed(2))}% (${Helpers.prettyNumber(pkg.inc)})</span>`;
         } else {
             return `<span class="fa fa-${pkg.status}"> ${Helpers.prettyNumber(pkg[category.date])} (${Helpers.prettyNumber(pkg.inc)})</span>`;
         }
     }
 
-    doesShowBefore(pkg, category, data) {
+    renderAuthor(author, category) {
+        if (category.id === "dayIncDeveloper") {
+            return `<span class="fa fa-${author.status}"> ${Helpers.prettyNumber(author.inc)} (${Helpers.prettyNumber(+(author.change * 100).toFixed(2))}%)</span>`;
+        } else if (category.id === "dayChangeDeveloper") {
+            return `<span class="fa fa-${author.status}"> ${Helpers.prettyNumber(+(author.change * 100).toFixed(2))}% (${Helpers.prettyNumber(author.inc)})</span>`;
+        } else {
+            return `<span class="fa fa-${author.status}"> ${Helpers.prettyNumber(author.downloads[category.date])} (${Helpers.prettyNumber(author.inc)})</span>`;
+        }
+    }
+
+    doesShowBefore(pkg, category) {
+        let data = this.data;
         if (category === "dayTop") return false;
         if (category === "dayInc") return data.dayTop.some(p => p.name === pkg.name);
         if (category === "dayChange") return ["dayTop", "dayInc"].some(name => data[name].some(p => p.name === pkg.name));
@@ -91,14 +102,30 @@ class NpmTrending {
         return false;
     }
 
-    renderCategory(category, data, _data) {
+    doesAuthorShowBefore(author, category) {
+        let data = this.data;
+        if (category === "dayTopDeveloper") return false;
+        if (category === "dayIncDeveloper") return data.dayTopDeveloper.some(p => p.name === author.name);
+        if (category === "dayChangeDeveloper") return ["dayTopDeveloper", "dayIncDeveloper"].some(name => data[name].some(p => p.name === author.name));
+        return false;
+    }
+
+    renderCategory(category, categoryData) {
         return `
 <article class="${category.id}">
     <div class="catHeader" style="background-color: #33a1d6;">${category.title} @ ${DateHelper.getDateString(category.date)}</div>
     <div class="cards">
-    ${
-            data.map(pkg => `
-        <div data-pkg="${pkg.name}" class="pkgCard ${this.doesShowBefore(pkg, category.id, _data) ? "collapse" : "expand"}">
+    ${categoryData.map(d => {
+        return category.id.indexOf("Developer") === -1 ? this.renderPkgCard(d, category) : this.renderAuthorCard(d, category);
+    }).join("")}
+    </div>
+</article>
+`;
+    }
+
+    renderPkgCard(pkg, category) {
+        return `
+        <div data-pkg="${pkg.name}" class="pkgCard ${this.doesShowBefore(pkg, category.id) ? "collapse" : "expand"}">
             <h3 class="pkgTitle">
                 <a href="https://www.npmjs.com/package/${pkg.name}" target="_blank">${pkg.name}</a>
                 ${this.renderPkg(pkg, category)}
@@ -120,44 +147,70 @@ class NpmTrending {
             </div>
             <div class="share"></div>
         </div>
-      `).join("")
-            }
-    </div>
-</article>
-`;
+      `;
+    }
+
+    renderAuthorCard(author, category) {
+        return `
+        <div data-author="${author.name}" class="authorCard ${this.doesAuthorShowBefore(author, category.id) ? "collapse" : "expand"}">
+            <h3 class="authorTitle">
+                <a target="_blank" href="https://www.npmjs.com/~${author.name}" target="_blank">${author.name} <span class="extra">(${author.packages.length} packages)</span></a>
+                ${this.renderAuthor(author, category)}
+            </h3>
+            <div class="sparkline download-history" data-author="${author.name}"></div>
+        </div>
+      `;
+  
     }
 
     renderContent(data) {
         if (!data.dayTop || !data.dayTop.length) {
             return `<div class="empty-data"><span>No data available for this day, possibly due to data issues in npm registry API.</span></div>`;
         }
+        let len = Object.keys(data).filter(name => name !== "dayNew" && name.indexOf("day") === 0 && data[name].length).length;
         return `
-<div class="${data.dayDep ? "col-5" : "col-3"}">
+<div class="col-${len}">
 ${this.renderCategory({
                 id: "dayTop",
                 title: "Top Downloads",
                 date: data.date
-            }, data.dayTop, data)}
+            }, data.dayTop)}
 ${this.renderCategory({
                 id: "dayInc",
                 title: "Top Increase Number",
                 date: data.date
-            }, data.dayInc, data)}
+            }, data.dayInc)}
 ${this.renderCategory({
                 id: "dayChange",
                 title: "Top Increase Percentage",
                 date: data.date
-            }, data.dayChange, data)}
+            }, data.dayChange)}
 ${data.dayDep ? this.renderCategory({
                 id: "dayDep",
                 title: "Most Dependents",
                 date: data.date
-            }, data.dayDep, data) : ""}
+            }, data.dayDep) : ""}
 ${data.dayDevDep ? this.renderCategory({
                 id: "dayDevDep",
                 title: "Most DevDependents",
                 date: data.date
-            }, data.dayDevDep, data) : ""}
+            }, data.dayDevDep) : ""}
+${data.dayTopDeveloper ? this.renderCategory({
+                id: "dayTopDeveloper",
+                title: "Top Developers",
+                date: data.date
+            }, data.dayTopDeveloper) : ""}
+${data.dayIncDeveloper ? this.renderCategory({
+                id: "dayIncDeveloper",
+                title: "Top Increase Number Developers",
+                date: data.date
+            }, data.dayIncDeveloper) : ""}
+${data.dayChangeDeveloper ? this.renderCategory({
+                id: "dayChangeDeveloper",
+                title: "Top Increase Percentage Developers",
+                date: data.date
+            }, data.dayChangeDeveloper) : ""}
+
 </div>
 `;
     }
@@ -238,26 +291,31 @@ ${data.dayDevDep ? this.renderCategory({
     }
 
     drawSparkline(data) {
-
-        let renderSparkline = (pkg, cat) => {
+        let renderSparkline = (cardData, cat, type = "pkg") => {
             // draw download-history
-            let container = document.querySelector(`.${cat} .download-history[data-pkg="${pkg.name}"]`);
-            if (container) new (Chartist as any).Line(container, {
-                labels: this.getPastWeekDate(theDate),
-                series: [pkg.history]
-            }, {
-                    axisX: {
-                        labelInterpolationFnc: function (value) {
-                            return new Date(value).toUTCString().split(",")[0];
-                        }
-                    },
-                    axisY: {
-                        labelInterpolationFnc: function (value) {
-                            return Helpers.prettyNumber(value);
+            let container = document.querySelector(`.${cat} .download-history[data-${type}="${cardData.name}"]`);
+            if (container) {
+                let labels = this.getPastWeekDate(theDate);
+                let seriesData;
+                if (type === "author") seriesData = labels.map(d => cardData.downloads[d] || 0);
+                else seriesData = cardData.history;
+                new (Chartist as any).Line(container, {
+                    labels: labels,
+                    series: [seriesData]
+                }, {
+                        axisX: {
+                            labelInterpolationFnc: function (value) {
+                                return new Date(value).toUTCString().split(",")[0];
+                            }
+                        },
+                        axisY: {
+                            labelInterpolationFnc: function (value) {
+                                return Helpers.prettyNumber(value);
+                            }
                         }
                     }
-                }
-            );
+                );
+            }
         }
 
 
@@ -265,8 +323,14 @@ ${data.dayDevDep ? this.renderCategory({
         data.dayInc.forEach(pkg => renderSparkline(pkg, "dayInc"));
         data.dayChange.forEach(pkg => renderSparkline(pkg, "dayChange"));
 
+        // dependents data
         if (data.dayDep) data.dayDep.forEach(pkg => renderSparkline(pkg, "dayDep"));
         if (data.dayDevDep) data.dayDevDep.forEach(pkg => renderSparkline(pkg, "dayDevDep"));
+
+        // developer's data
+        if (data.dayTopDeveloper) data.dayTopDeveloper.forEach(pkg => renderSparkline(pkg, "dayTopDeveloper", "author"));
+        if (data.dayIncDeveloper) data.dayIncDeveloper.forEach(pkg => renderSparkline(pkg, "dayIncDeveloper", "author"));
+        if (data.dayChangeDeveloper) data.dayChangeDeveloper.forEach(pkg => renderSparkline(pkg, "dayChangeDeveloper", "author"));
     }
 
     // render modals
@@ -282,7 +346,7 @@ ${data.dayDevDep ? this.renderCategory({
                 id: "new",
                 title: `New Packages Fetched (${data.dayNew.length} added)`,
                 date: data.date
-            }, data.dayNew, data)}</div>`;
+            }, data.dayNew)}</div>`;
 
             // draw sparkline and update event binding
             if (data.dayNew && data.dayNew.length) data.dayNew.forEach(pkg => {
@@ -300,12 +364,17 @@ ${data.dayDevDep ? this.renderCategory({
 
     static bindTitleEvent(els: any) {
         // bind event
-        Array.prototype.slice.call(els).forEach(el =>
+        Array.prototype.slice.call(els).forEach(el => {
             el.addEventListener("click", () => {
                 let pkgCard = el.parentNode;
                 Helpers.toggleClass(pkgCard, "collapse");
             })
-        );
+
+            // stopPropagation for child event on links
+            if (el.children && el.children[0]) {
+                el.children[0].addEventListener("click", e => e.stopPropagation());
+            }
+        });
     }
 
     static goTo(d: number = -1) {
@@ -358,6 +427,7 @@ Helpers.ready(() => {
 
             // bind event on all cards in content
             NpmTrending.bindTitleEvent(document.querySelectorAll("#content .pkgTitle"));
+            NpmTrending.bindTitleEvent(document.querySelectorAll("#content .authorTitle"));
 
             // bind click on total packages 
             // render a modal to show new packages
@@ -380,19 +450,28 @@ Helpers.ready(() => {
                     cur: data
                 }))
         })
-        .then(({prev, cur}) => {
+        .then(({ prev, cur }) => {
             if (!prev.dayTop || !prev.dayTop.length) return;
             if (!cur.dayTop || !cur.dayTop.length) return;
 
             // add NEW icon for packages not in previous day's top
-            ["dayTop", "dayChange", "dayInc", "dayNew", "dayDep", "dayDevDep"].forEach(category => {
+            ["dayTop", "dayChange", "dayInc", "dayDep", "dayDevDep"].forEach(category => {
                 if (cur[category]) {
                     cur[category].filter(pkgC => !(prev[category].some(pkgP => pkgP.name === pkgC.name)))
                         .forEach(pkg => {
                             Helpers.toggleClass(document.querySelector(`.${category} .pkgCard[data-pkg="${pkg.name}"]`), "new");
                         })
                 }
+            });
+            ["dayTopDeveloper", "dayChangeDeveloper", "dayIncDeveloper"].forEach(category => {
+                if (cur[category]) {
+                    cur[category].filter(authorC => !(prev[category] && prev[category].some(authorP => authorP.name === authorC.name)))
+                        .forEach(author => {
+                            Helpers.toggleClass(document.querySelector(`.${category} .authorCard[data-author="${author.name}"]`), "new");
+                        })
+                }
             })
+
         })
         .catch(function (error) {
             console.log(error);

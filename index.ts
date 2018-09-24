@@ -79,34 +79,14 @@ const npmJob = (date: string = DateHelper.today) : Promise<any> => {
 
             // run generator
             // if data pkg not exists, do nothing
-            let fetched = true;
-            let dataPath = join(__dirname, "data", "stat-" + date + ".json");
-            if (pathExistsSync(dataPath)) {
+            let generator = new Generator(date);
+            generator.generate(DateHelper.add(date, -1));
 
-                let generator = new Generator(date);
-                generator.generate(DateHelper.add(date, -1));
-
-                // and re-generate for the day after if its not today
-                if (DateHelper.add(date, 1) < DateHelper.today) {
-                    generator = new Generator(DateHelper.add(date, 1));
-                    generator.generate(date);
-                }
-            } else {
-                fetched = false;
-                let data = {
-                    "date": DateHelper.add(date, -1),
-                    "title": "Npm Trending Report",
-                    "total": 0,
-                    "dayInc": [],
-                    "dayChange": [],
-                    "dayTop": []
-                }
-                ensureFileSync(join(Generator.REPORT_DIR, "pkg-" + DateHelper.add(date, -1) + ".json"));
-                writeJSONSync(join(Generator.REPORT_DIR, "pkg-" + DateHelper.add(date, -1) + ".json"), data);
+            // and re-generate for the day after if its not today and it has valid data
+            if (!generator.noData && DateHelper.add(date, 1) < DateHelper.today) {
+                let generator = new Generator(DateHelper.add(date, 1));
+                generator.generate(date);
             }
-
-            // move over assets and template
-            copySync(join(__dirname, "template"), join(Generator.DIST_DIR));
 
             // do a deployment
             ghPages.publish(join(__dirname, "dist"), {
@@ -114,7 +94,7 @@ const npmJob = (date: string = DateHelper.today) : Promise<any> => {
                 message: `daily report for ${date}!`
             }, (error) => {
                 if (error) reject(error);
-                else resolve({fetched});
+                else resolve({fetched: !generator.noData});
             });
         })
     });

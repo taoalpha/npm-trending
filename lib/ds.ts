@@ -6,7 +6,7 @@
 
 import { readJsonSync, pathExists, pathExistsSync } from "fs-extra";
 import { join } from "path";
-import { PackageInfo, PackageStat } from "./types";
+import { PackageInfo, PackageStat, Maintainer } from "./types";
 import { DateHelper } from "./helpers";
 
 interface GetTopOptions {
@@ -34,6 +34,16 @@ export interface Package {
     created?: string,
     modified?: string,
     toJSON?: () => any
+}
+
+export interface Author extends Maintainer {
+    packages?: string[];
+    downloads?: {
+        [key: string]: number
+    };
+    inc?: number;
+    change?: number;
+    status?: string;
 }
 
 interface GetTopKResponse {
@@ -64,7 +74,15 @@ export class Analyze {
 
     private prevDate: string;
 
+    // indicate that no data for this date
+    noData: boolean = false;
+
     constructor(private date: string = DateHelper.today) {
+        if(!pathExistsSync(join(__dirname, "../data/stat-" + this.date + ".json"))) {
+            this.noData = true;
+            return this;
+        }
+
         this.prevDate = DateHelper.add(date, -1);
         this.statDb = readJsonSync(join(__dirname, "../data/stat-" + date + ".json"));
         this.infoDb = readJsonSync(join(__dirname, "../data/info-" + date + ".json"));
@@ -176,7 +194,7 @@ export class Analyze {
                 return this[date] - this[prevDate];
             },
             get change() {
-                return this.inc / (this[prevDate] | 1);
+                return this.inc / (this[prevDate] || 1);
             },
             get status() {
                 return this[date] > this[prevDate] ? "arrow-up" : "arrow-down";
@@ -249,6 +267,58 @@ export class Analyze {
 
         return {topDep: topKDependent, topDevDep: topKDevDependent};
     }
+
+    getTopDeveloper(K: number, date: string, options: GetTopOptions) {
+        let prevDate = DateHelper.add(date, -1);
+
+        let authors = this.keys.reduce((authors, key) => {
+            let pkg = this.infoDb[key],
+                pkgStat = this.statDb[key];
+            
+            if (pkg && pkg.author && pkg.author.email) {
+                // init author container
+                let authorEmail = pkg.author.email;
+                authors[authorEmail] = authors[authorEmail] || { 
+                    packages: [],
+                    downloads: {},
+                    get inc() {
+                        return (this.downloads[date] || 0) - (this.downloads[prevDate] || 0);
+                    },
+                    get change() {
+                        return this.inc / (this.downloads[prevDate] || 1);
+                    },
+                    get status() {
+                        return this.downloads[date] > this.downloads[prevDate] ? "arrow-up" : "arrow-down";
+                    }
+                } as Author;
+
+                Object.assign(authors[authorEmail], pkg.author);
+
+                authors[authorEmail].packages.push(pkg.name);
+                Object.keys(pkgStat).forEach(date => {
+                    authors[authorEmail].downloads[date] = authors[authorEmail].downloads[date] || 0;
+                    authors[authorEmail].downloads[date] += pkgStat[date];
+                });
+            }
+            return authors;
+        }, {} as {[key: string]: Author});
+
+        let filteredAuthors = Object.values(authors).filter(author => author.downloads[date] > (options.minDownload || 0));
+
+        let topKDeveloper = filteredAuthors
+            .sort((authorA, authorB): number => authorB.downloads[date] - authorA.downloads[date])
+            .slice(0, K);
+
+        let topKIncreaseDeveloper = filteredAuthors
+            .sort((authorA, authorB): number => authorB.inc - authorA.inc)
+            .slice(0, K);
+ 
+        let topKChangeDeveloper = filteredAuthors
+            .sort((authorA, authorB): number => authorB.change - authorA.change)
+            .slice(0, K);
+ 
+        return { topDeveloper: topKDeveloper, topIncreaseDeveloper: topKIncreaseDeveloper, topChangeDeveloper: topKChangeDeveloper};
+    }
 }
 
 // console.log(new Analyze().getTop(20, "2018-09-13", { minDownload: 100 }).top.map(pkg => pkg.name + "-" + pkg.change).join(","))
@@ -259,3 +329,4 @@ export class Analyze {
 // console.log(new Analyze("2018-09-11").getTopNotUpdatedPkg(10))
 // console.log(new Analyze("2018-09-11").getTopRecentUpdatedPkg(10))
 // console.log(new Analyze("2018-09-16").getTopDep(10, "2018-09-15", {minDownload: 100}));
+// console.log(new Analyze("2018-09-16").getTopDeveloper(10, "2018-09-15", {minDownload: 100}));
