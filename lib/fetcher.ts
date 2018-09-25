@@ -301,6 +301,9 @@ export class NpmTrending {
 
                         if (latest._npmUser) {
                             curPkg.author = curPkg.author || {};
+                            if (typeof curPkg.author === "string") {
+                                curPkg.author = {name: curPkg.author};
+                            }
                             curPkg.author.alias = latest._npmUser.name;
                         }
 
