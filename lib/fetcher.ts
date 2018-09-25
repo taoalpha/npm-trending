@@ -299,6 +299,10 @@ export class NpmTrending {
                             if (this._shouldFetch(dep)) this._queue.push(dep);
                         });
 
+                        if (latest._npmUser) {
+                            curPkg.author.alias = latest._npmUser.name;
+                        }
+
                         // remove duplicates
                         this._queue = this._unique(this._queue);
                     }
@@ -541,7 +545,7 @@ export class NpmTrending {
         // update seed
         // default seed: will be used if no queue, it will be used for next day's initial fetch, the idea is all packages previous fetched should be included at least :)
         let seeds = Object.keys(infoDb);
-        let randomIndices = new Array(seeds.length > 5 ? 5 : seeds.length).fill(null).map(() => Math.floor(Math.random() * seeds.length) + 1);
+        let randomIndices = new Array(seeds.length > 3 ? 3 : seeds.length).fill(null).map(() => Math.floor(Math.random() * seeds.length) + 1);
 
         // update message
         writeFileSync(NpmTrending.MESSAGE_FILE, `We have finished the job for ${this.date}! ${this._fetched.total} packages fetched today.`, "utf-8");

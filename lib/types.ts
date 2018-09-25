@@ -19,7 +19,8 @@ export interface ServerPkgStat {
 export interface Maintainer {
     email?: string,
     name?: string,
-    url?: string
+    url?: string,
+    alias?: string
 }
 
 export interface Repository {

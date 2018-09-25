@@ -134,7 +134,7 @@ class NpmTrending {
             <div class="sparkline download-history" data-pkg="${pkg.name}"></div>
             <div class="pkgInfo">
                 <span>
-                  ${pkg.author ? `<a target="_blank" href="https://www.npmjs.com/~${pkg.author.name}">` : ""}<i class="fa fa-user"> ${Helpers.maxLengthString(pkg.author && pkg.author.name || "Unknown", 15)}</i>${pkg.author ? "</a>" : ""}
+                  ${pkg.author ? `<a target="_blank" href="${pkg.author.url ? pkg.author.url : pkg.author.alias ? `https://www.npmjs.com/~${pkg.author.alias}` : `https://www.google.com/search?newwindow=1&q=${pkg.author.name}`}">` : ""}<i class="fa fa-user"> ${Helpers.maxLengthString(pkg.author && pkg.author.name || "Unknown", 15)}</i>${pkg.author ? "</a>" : ""}
                 </span>
                 ${pkg.homepage ? `
                 <span> 
@@ -154,7 +154,7 @@ class NpmTrending {
         return `
         <div data-author="${author.name}" class="authorCard ${this.doesAuthorShowBefore(author, category.id) ? "collapse" : "expand"}">
             <h3 class="authorTitle">
-                <a target="_blank" href="https://www.npmjs.com/~${author.name}" target="_blank">${author.name} <span class="extra">(${author.packages.length} packages)</span></a>
+                <a target="_blank" href="${author.url ? author.url : author.alias ? `https://www.npmjs.com/~${author.alias}` : `https://www.google.com/search?newwindow=1&q=${author.name}`}" target="_blank">${author.name} <span class="extra">(${author.packages.length} packages)</span></a>
                 ${this.renderAuthor(author, category)}
             </h3>
             <div class="sparkline download-history" data-author="${author.name}"></div>

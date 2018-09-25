@@ -2,6 +2,8 @@ I will keep NPM trending as a serverless site, so some features require visitors
 
 
 #### Pending
+- retry logic if too many errors (currently it will just stop)
+- clean code
 - num of packages created distributed by months
 - responsive
 
