@@ -300,6 +300,7 @@ export class NpmTrending {
                         });
 
                         if (latest._npmUser) {
+                            curPkg.author = curPkg.author || {};
                             curPkg.author.alias = latest._npmUser.name;
                         }
 
