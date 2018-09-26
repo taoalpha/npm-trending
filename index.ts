@@ -81,22 +81,25 @@ const npmJob = (date: string = DateHelper.today) : Promise<any> => {
             // run generator
             // if data pkg not exists, do nothing
             let generator = new Generator(date);
+            let needDeployment = !pathExistsSync(join(Generator.REPORT_DIR, "pkg-" + date + ".json"));
             generator.generate(DateHelper.add(date, -1));
 
             // and re-generate for the day after if its not today and it has valid data
             if (!generator.noData && DateHelper.add(date, 1) < DateHelper.today) {
+                needDeployment = true;
                 let generator = new Generator(DateHelper.add(date, 1));
                 generator.generate(date);
             }
 
-            // do a deployment
-            ghPages.publish(join(__dirname, "dist"), {
-                add: true,  // only add
-                message: `daily report for ${date}!`
-            }, (error) => {
-                if (error) reject(error);
-                else resolve({fetched: !generator.noData});
-            });
+            // do a deployment if report is not exists
+            if (needDeployment) ghPages.publish(join(__dirname, "dist"), {
+                    add: true,  // only add
+                    message: `daily report for ${date}!`
+                }, (error) => {
+                    if (error) reject(error);
+                    else resolve({fetched: !generator.noData});
+                });
+            else resolve({fetched: !generator.noData});
         })
     });
 }
