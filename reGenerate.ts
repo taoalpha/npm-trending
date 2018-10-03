@@ -3,7 +3,7 @@ import { copySync } from "fs-extra";
 import { join } from "path";
 import { DateHelper } from "./lib/helpers";
 
-let startDate = "2018-09-02";
+let startDate = "2018-09-20";
 let date;
 
 // use 9/1 data to generate all reports between 2017-03-01 to 2018-09-01
