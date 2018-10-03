@@ -28,7 +28,7 @@ interface DailyReport {
 
 export class Generator {
     private analyze: Analyze;
-    constructor(private date: string = DateHelper.today) {
+    constructor(public date: string = DateHelper.today) {
         this.analyze = new Analyze(date);
     };
 

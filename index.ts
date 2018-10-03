@@ -84,10 +84,14 @@ const npmJob = (date: string = DateHelper.today) : Promise<any> => {
             let needDeployment = !pathExistsSync(join(Generator.REPORT_DIR, "pkg-" + date + ".json"));
             generator.generate(DateHelper.add(date, -1));
 
-            // and re-generate for the day after if its not today and it has valid data
-            if (!generator.noData && DateHelper.add(date, 1) < DateHelper.today) {
+            // and re-generate
+            if (!generator.noData) {
+                // re-generate the next valid date
                 needDeployment = true;
                 let generator = new Generator(DateHelper.add(date, 1));
+                while (!generator.noData) {
+                    generator = new Generator(DateHelper.add(generator.date, 1));
+                }
                 generator.generate(date);
             }
 
