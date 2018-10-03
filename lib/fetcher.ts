@@ -89,6 +89,8 @@ export class NpmTrending {
     // from history data, we can fetch ~12k with what we have now, if we want to fetch more, we need new seed :)
     static MAX_NUM_PACKAGES = 100000;
 
+    // concurrent fetches that can run at a time
+    static CONCURRENT_FETCHES = 20;
 
     // APIs
     // depends
@@ -263,7 +265,7 @@ export class NpmTrending {
         }
 
         // change #num here to control how many requests can be sent at the same time
-        return Promise.all(new Array(15).fill(null).map(() => this.fetchPkgInfo(this._queue.pop())))
+        return Promise.all(new Array(NpmTrending.CONCURRENT_FETCHES).fill(null).map(() => this.fetchPkgInfo(this._queue.pop())))
             .then(data => {
                 // name is a required field for a valid pkg
                 data = data.filter(pkg => pkg && !pkg.error && pkg.name);

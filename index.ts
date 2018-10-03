@@ -67,7 +67,7 @@ const npmJob = (date: string = DateHelper.today) : Promise<any> => {
         npm.on("fetchBatch", (n: NpmTrending) => {
             // DEBUG - see how fast the queue can go
             if ((n.total(true)) % 100 === 0) {
-                console.log(`${n.total(true)} packages fetched!`);
+                console.log(`${n.total(true)} packages fetched! ${n.queue.length} left in queue!`);
             }
         });
 
@@ -89,7 +89,7 @@ const npmJob = (date: string = DateHelper.today) : Promise<any> => {
                 // re-generate the next valid date
                 needDeployment = true;
                 let generator = new Generator(DateHelper.add(date, 1));
-                while (!generator.noData) {
+                while (!generator.noData && DateHelper.compare(generator.date, DateHelper.today) === -1) {
                     generator = new Generator(DateHelper.add(generator.date, 1));
                 }
                 generator.generate(date);
@@ -98,7 +98,7 @@ const npmJob = (date: string = DateHelper.today) : Promise<any> => {
             // do a deployment if report is not exists
             if (needDeployment) ghPages.publish(join(__dirname, "dist"), {
                     add: true,  // only add
-                    message: `daily report for ${date}!`
+                    message: `daily report for ${DateHelper.add(date, -1)}!`
                 }, (error) => {
                     if (error) reject(error);
                     else resolve({fetched: !generator.noData});
