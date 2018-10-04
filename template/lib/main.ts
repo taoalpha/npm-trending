@@ -51,7 +51,7 @@ class Helpers {
     }
 
     static sanitize(str): string {
-        return str.replace(/"/, "'");
+        return str.replace(/"/g, "'");
     }
 }
 
@@ -135,7 +135,7 @@ class NpmTrending {
                 ${this.renderPkg(pkg, category)}
             </h3>
             <div class="pkgDesc">${pkg.description}</div>
-            <div class="sparkline download-history" data-pkg="${pkg.name}"></div>
+            <div class="sparkline download-history" data-pkg="${Helpers.sanitize(pkg.name)}"></div>
             <div class="pkgInfo">
                 <span>
                   ${pkg.author ? `<a target="_blank" href="${pkg.author.url ? (pkg.author.url.indexOf("http") !== 0 ? `https://${pkg.author.url}` : pkg.author.url) : pkg.author.alias ? `https://www.npmjs.com/~${pkg.author.alias}` : `https://www.google.com/search?newwindow=1&q=${pkg.author.name}`}">` : ""}<i class="fa fa-user"> ${Helpers.maxLengthString(pkg.author && (pkg.author.name || pkg.author.alias) || "Unknown", 15)}</i>${pkg.author ? "</a>" : ""}
@@ -146,7 +146,7 @@ class NpmTrending {
                 </span>
                 ` : ""}
                 <span><i class="fa fa-download"> ${Helpers.prettyNumber(pkg[category.date])}</i></span>
-                ${pkg.versions && category.id !== "new" ? `<span class="fa fa-history pointer" data-pkg="${pkg.name}"></span>` : ""}
+                ${pkg.versions && category.id !== "new" ? `<span class="fa fa-history pointer" data-pkg="${Helpers.sanitize(pkg.name)}"></span>` : ""}
                 <span><a href="https://www.npmjs.com/browse/depended/${pkg.name}" target="_blank" title="${pkg.numDependents ? `among all packages we fetched, ${pkg.numDependents} packages depend on it directly, ${pkg.numDevDependents} packages depend on it as a development dependency` : ""}"><i class="fa fa-tree"> Dep</i></a></span>
             </div>
             <div class="share"></div>
@@ -297,7 +297,7 @@ ${data.dayChangeDeveloper ? this.renderCategory({
     drawSparkline(data) {
         let renderSparkline = (cardData, cat, type = "pkg") => {
             // draw download-history
-            let container = document.querySelector(`.${cat} .download-history[data-${type}="${cardData.name}"]`);
+            let container = document.querySelector(`.${cat} .download-history[data-${type}="${Helpers.sanitize(cardData.name)}"]`);
             if (container) {
                 let labels = this.getPastWeekDate(theDate);
                 let seriesData;
@@ -354,7 +354,7 @@ ${data.dayChangeDeveloper ? this.renderCategory({
 
             // draw sparkline and update event binding
             if (data.dayNew && data.dayNew.length) data.dayNew.forEach(pkg => {
-                this.renderSparkline(document.querySelector(`#modals .new .download-history[data-pkg="${pkg.name}"]`), pkg);
+                this.renderSparkline(document.querySelector(`#modals .new .download-history[data-pkg="${Helpers.sanitize(pkg.name)}"]`), pkg);
             });
             this._newPkgColumn = document.getElementById("new-package-modal");
 
@@ -463,7 +463,7 @@ Helpers.ready(() => {
                 if (cur[category]) {
                     cur[category].filter(pkgC => !(prev[category].some(pkgP => pkgP.name === pkgC.name)))
                         .forEach(pkg => {
-                            Helpers.toggleClass(document.querySelector(`.${category} .pkgCard[data-pkg="${pkg.name}"]`), "new");
+                            Helpers.toggleClass(document.querySelector(`.${category} .pkgCard[data-pkg="${Helpers.sanitize(pkg.name)}"]`), "new");
                         })
                 }
             });
