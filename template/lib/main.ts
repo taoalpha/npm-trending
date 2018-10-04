@@ -49,6 +49,10 @@ class Helpers {
             el.classList.add(className);
         }
     }
+
+    static sanitize(str): string {
+        return str.replace(/"/, "'");
+    }
 }
 
 
@@ -116,8 +120,8 @@ class NpmTrending {
     <div class="catHeader" style="background-color: #33a1d6;">${category.title} @ ${DateHelper.getDateString(category.date)}</div>
     <div class="cards">
     ${categoryData.map(d => {
-        return category.id.indexOf("Developer") === -1 ? this.renderPkgCard(d, category) : this.renderAuthorCard(d, category);
-    }).join("")}
+                return category.id.indexOf("Developer") === -1 ? this.renderPkgCard(d, category) : this.renderAuthorCard(d, category);
+            }).join("")}
     </div>
 </article>
 `;
@@ -152,15 +156,15 @@ class NpmTrending {
 
     renderAuthorCard(author, category) {
         return `
-        <div data-author="${author.name}" class="authorCard ${this.doesAuthorShowBefore(author, category.id) ? "collapse" : "expand"}">
+        <div data-author="${Helpers.sanitize(author.name)}" class="authorCard ${this.doesAuthorShowBefore(author, category.id) ? "collapse" : "expand"}">
             <h3 class="authorTitle">
                 <a target="_blank" href="${author.url ? (author.url.indexOf("http") !== 0 ? `https://${author.url}` : author.url) : author.alias ? `https://www.npmjs.com/~${author.alias}` : `https://www.google.com/search?newwindow=1&q=${author.name}`}" target="_blank">${author.name || author.alias} <span class="extra">(${author.packages.length} packages)</span></a>
                 ${this.renderAuthor(author, category)}
             </h3>
-            <div class="sparkline download-history" data-author="${author.name}"></div>
+            <div class="sparkline download-history" data-author="${Helpers.sanitize(author.name)}"></div>
         </div>
       `;
-  
+
     }
 
     renderContent(data) {
@@ -271,7 +275,7 @@ ${data.dayChangeDeveloper ? this.renderCategory({
 
     renderSparkline(el, pkg) {
         // draw download-history
-        if (!el) return ;
+        if (!el) return;
         new (Chartist as any).Line(el, {
             labels: this.getPastWeekDate(this.date),
             series: [pkg.history]
@@ -467,7 +471,9 @@ Helpers.ready(() => {
                 if (cur[category]) {
                     cur[category].filter(authorC => !(prev[category] && prev[category].some(authorP => authorP.name === authorC.name)))
                         .forEach(author => {
-                            Helpers.toggleClass(document.querySelector(`.${category} .authorCard[data-author="${author.name}"]`), "new");
+                            try {
+                                Helpers.toggleClass(document.querySelector(`.${category} .authorCard[data-author="${Helpers.sanitize(author.name)}"]`), "new");
+                            } catch(e) { }
                         })
                 }
             })
