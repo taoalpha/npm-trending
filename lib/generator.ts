@@ -43,7 +43,7 @@ export class Generator {
         // if no data, generate with placeholder
         if (this.analyze.noData) {
             let data = {
-                "date": DateHelper.add(date, -1),
+                "date": date,
                 "title": "Npm Trending Report",
                 "total": 0,
                 "dayInc": [],
