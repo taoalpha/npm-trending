@@ -12,7 +12,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "bluebird": "3.5.1",
+    "bluebird": "3.5.3",
     "fs-extra": "^7.0.0",
     "http-server": "^0.11.1",
     "lodash-decorators": "^6.0.0",
