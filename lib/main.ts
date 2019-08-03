@@ -6,6 +6,14 @@ declare let Chartist: any;
 import { DateHelper } from "../../lib/helpers";
 
 class Helpers {
+    static escapeHtml(unsafe: string) {
+         return unsafe
+             .replace(/&/g, "&amp;")
+             .replace(/</g, "&lt;")
+             .replace(/>/g, "&gt;")
+             .replace(/"/g, "&quot;")
+             .replace(/'/g, "&#039;");
+    }
     static getParameterByName(name: string, url: string = window.location.href) {
         name = name.replace(/[\[\]]/g, '\\$&');
         const regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)'),
@@ -29,8 +37,8 @@ class Helpers {
     }
 
     static maxLengthString(str: string, len: number): string {
-        if (str.length < len) return str;
-        return str.split("").slice(0, len).join("") + "...";
+        if (str.length < len) return Helpers.escapeHtml(str);
+        return Helpers.escapeHtml(str.split("").slice(0, len).join("") + "...");
     }
 
     static ready(fn: () => void): void {
