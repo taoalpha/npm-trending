@@ -7,7 +7,7 @@
     "fetch": "ts-node index.ts",
     "compile": "mkdir -p dist && cp -rf template/* dist/ && sass dist/lib/main.scss dist/lib/main.css && tsc --out dist/lib/main.js dist/lib/main.ts --lib 'dom, es2017' --skipLibCheck --target ES5 --module amd",
     "serve": "http-server ./dist",
-    "deploy": "ls -l dist && gh-pages -d dist -a"
+    "deploy": "ls -l dist && gh-pages -d dist -a -t"
   },
   "author": "",
   "license": "ISC",
@@ -24,7 +24,7 @@
     "@types/fs-extra": "^5.0.4",
     "@types/node": "^10.11.6",
     "@types/request-promise": "^4.1.42",
-    "gh-pages": "^2.1.0",
+    "gh-pages": "2.0",
     "handlebars": "^4.0.5",
     "sass": "^1.14.1",
     "ts-node": "^7.0.1",
