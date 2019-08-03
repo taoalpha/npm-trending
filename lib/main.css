@@ -1,0 +1,251 @@
+* {
+  margin: 0px;
+  padding: 0px;
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  background-color: #f0f0f0;
+  font-family: "Open Sans", sans-serif;
+}
+
+.fa-arrow-up {
+  color: green;
+}
+
+.fa-arrow-down {
+  color: red;
+}
+
+.pointer {
+  cursor: pointer;
+}
+
+.show {
+  visibility: visible;
+}
+
+.hide {
+  visibility: hidden;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+a:hover {
+  color: #C12127;
+}
+
+header {
+  width: 100%;
+  height: 50px;
+  line-height: 50px;
+  text-align: center;
+  font-size: 20px;
+  font-weight: bold;
+  color: white;
+  position: absolute;
+  background-color: #C12127;
+}
+header a:hover {
+  color: white;
+}
+header span {
+  font-size: 15px;
+  font-weight: initial;
+}
+header span.rightLink {
+  float: right;
+  margin-right: 20px;
+}
+header span.rightLink a:hover {
+  text-decoration: underline;
+  color: white;
+}
+
+article .catHeader {
+  height: 30px;
+  line-height: 30px;
+  text-align: center;
+  font-size: 15px;
+  font-weight: bold;
+  color: white;
+  position: relative;
+  width: 100%;
+}
+article .cards {
+  padding-bottom: 30px;
+  overflow: scroll;
+  height: 100%;
+}
+article .cards .pkgCard, article .cards .authorCard {
+  background-color: #fff;
+  margin: 10px auto;
+  width: 90%;
+  border-radius: 10px;
+  padding: 10px;
+  background-color: #fff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  position: relative;
+  /* sparkline */
+}
+article .cards .pkgCard.new:before, article .cards .authorCard.new:before {
+  content: "New";
+  display: block;
+  position: absolute;
+  top: 0px;
+  background: red;
+  left: 0px;
+  font-size: 10px;
+  padding: 0px 4px 0px 4px;
+  color: white;
+}
+article .cards .pkgCard.collapse, article .cards .authorCard.collapse {
+  height: 50px;
+}
+article .cards .pkgCard.collapse .pkgDesc, article .cards .authorCard.collapse .pkgDesc {
+  visibility: hidden;
+}
+article .cards .pkgCard.collapse .sparkline, article .cards .authorCard.collapse .sparkline {
+  visibility: hidden;
+}
+article .cards .pkgCard.collapse .pkgInfo, article .cards .authorCard.collapse .pkgInfo {
+  visibility: hidden;
+}
+article .cards .pkgCard .sparkline, article .cards .authorCard .sparkline {
+  height: 100px;
+}
+article .cards .pkgCard .pkgTitle, article .cards .pkgCard .authorTitle, article .cards .authorCard .pkgTitle, article .cards .authorCard .authorTitle {
+  cursor: pointer;
+}
+article .cards .pkgCard .pkgTitle a, article .cards .pkgCard .authorTitle a, article .cards .authorCard .pkgTitle a, article .cards .authorCard .authorTitle a {
+  max-width: 70%;
+  text-overflow: ellipsis;
+  display: inline-block;
+  white-space: nowrap;
+  overflow: hidden;
+}
+article .cards .pkgCard .pkgTitle span.extra, article .cards .pkgCard .authorTitle span.extra, article .cards .authorCard .pkgTitle span.extra, article .cards .authorCard .authorTitle span.extra {
+  font-size: 12px;
+  color: #aaa;
+  float: none;
+  vertical-align: baseline;
+}
+article .cards .pkgCard .pkgTitle span, article .cards .pkgCard .authorTitle span, article .cards .authorCard .pkgTitle span, article .cards .authorCard .authorTitle span {
+  float: right;
+  font-size: 15px;
+  line-height: 25px;
+}
+article .cards .pkgCard .pkgDesc, article .cards .authorCard .pkgDesc {
+  padding: 10px 0;
+}
+article .cards .pkgCard .pkgInfo span, article .cards .authorCard .pkgInfo span {
+  font-size: 15px;
+  color: #aaa;
+  margin-right: 10px;
+}
+
+/* navigation: left, right */
+.navigation {
+  font-size: 2rem;
+}
+.navigation .fa-chevron-circle-left, .navigation .fa-chevron-circle-right {
+  position: absolute;
+  top: 50%;
+  cursor: pointer;
+  opacity: 0.2;
+}
+.navigation .fa-chevron-circle-right {
+  right: 0px;
+}
+.navigation .fa-chevron-circle-right:hover {
+  opacity: 1;
+}
+.navigation .fa-chevron-circle-left {
+  left: 0px;
+}
+.navigation .fa-chevron-circle-left:hover {
+  opacity: 1;
+}
+
+#content, #modals {
+  padding-top: 50px;
+  width: 100%;
+  height: 100%;
+  overflow-y: hidden;
+  overflow-x: scroll;
+}
+#content > div, #modals > div {
+  display: flex;
+  height: 100%;
+}
+#content .col-5, #modals .col-5 {
+  width: 166.665%;
+}
+#content .col-6, #modals .col-6 {
+  width: 199.998%;
+}
+#content .col-8, #modals .col-8 {
+  width: 266.664%;
+}
+
+#content article, #modals article {
+  flex: 1;
+  order: 1;
+  height: 100%;
+  position: relative;
+  border-right: 1px solid #ddd;
+}
+
+#content .empty-data {
+  width: 500px;
+  margin: 50px auto;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 10px;
+  height: 60px;
+  text-align: center;
+}
+#content .empty-data span {
+  line-height: 30px;
+}
+
+#modals {
+  position: absolute;
+  top: 0px;
+  background: rgba(0, 0, 0, 0.8);
+}
+#modals .fa-close {
+  color: white;
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 10px;
+}
+#modals .content-container {
+  overflow: scroll;
+  width: 100%;
+}
+#modals #new-package-modal {
+  width: 50%;
+  margin: 0 auto;
+}
+#modals #new-package-modal article {
+  border-right: none;
+}
+#modals .version-history {
+  text-align: center;
+  width: 90%;
+  margin: 0 auto;
+  color: white;
+}
+#modals .version-history div {
+  height: 150px;
+  background: white;
+}
+
+/*# sourceMappingURL=main.css.map */
