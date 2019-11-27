@@ -21,6 +21,7 @@ jobs:
       - checkout
 
       - run: git gc
+      - run: git pull --rebase origin master
       - save_cache:
           #key: source-v1-{{ .Branch }}-{{ .Revision }}
           key: source-v1-{{ .Branch }}
@@ -28,7 +29,6 @@ jobs:
             - ".git"
             # data folders
             - "data"
-
 
       - add_ssh_keys:
           fingerprints:
