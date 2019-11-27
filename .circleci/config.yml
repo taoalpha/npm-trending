@@ -26,6 +26,8 @@ jobs:
           key: source-v1-{{ .Branch }}
           paths:
             - ".git"
+            # data folders
+            - "data"
 
 
       - add_ssh_keys:
