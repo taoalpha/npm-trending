@@ -15,8 +15,7 @@ jobs:
       - restore_cache:
           keys:
             # - source-v1-{{ .Branch }}-{{ .Revision }}
-            - source-v1-{{ .Branch }}
-            - source-v1-
+            - source-v1.0.1-{{ .Branch }}
 
       - checkout
 
@@ -24,7 +23,7 @@ jobs:
       - run: git pull --rebase origin master
       - save_cache:
           #key: source-v1-{{ .Branch }}-{{ .Revision }}
-          key: source-v1-{{ .Branch }}
+          key: source-v1.0.1-{{ .Branch }}
           paths:
             - ".git"
             # data folders
@@ -68,6 +67,9 @@ jobs:
           paths:
             - .tmp
           key: v1-tmp-{{ checksum "message" }}
+
+      # rebase before push
+      - run: git pull --rebase origin master
 
       - run: 
           command: if [[ `git status --porcelain` ]]; then git add -A && git commit -m "$(tail -n 1 message)" && git push origin HEAD:master; fi;
