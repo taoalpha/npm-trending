@@ -2,7 +2,7 @@
 #
 # Check https://circleci.com/docs/2.0/language-javascript/ for more details
 #
-version: 2
+version: 2.1
 jobs:
   build:
     docker:
@@ -14,14 +14,16 @@ jobs:
     steps:
       - restore_cache:
           keys:
-            - source-v1-{{ .Branch }}-{{ .Revision }}
+            # - source-v1-{{ .Branch }}-{{ .Revision }}
             - source-v1-{{ .Branch }}-
             - source-v1-
 
       - checkout
 
+      - run: git gc
       - save_cache:
-          key: source-v1-{{ .Branch }}-{{ .Revision }}
+          #key: source-v1-{{ .Branch }}-{{ .Revision }}
+          key: source-v1-{{ .Branch }}
           paths:
             - ".git"
 
