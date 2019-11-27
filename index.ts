@@ -108,7 +108,8 @@ const npmJob = (date: string = DateHelper.today) : Promise<any> => {
     });
 }
 
-let start = "2018-09-01";
+// TODO(taoalpha): should always start from last day that moved to data-archive
+let start = "2019-11-02";
 let i = 0;
 let promise;
 
