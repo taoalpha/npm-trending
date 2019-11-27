@@ -14,16 +14,14 @@ jobs:
     steps:
       - restore_cache:
           keys:
-            # - source-v1-{{ .Branch }}-{{ .Revision }}
-            - source-v1.0.1-{{ .Branch }}
+            - source-v1.0.0-{{ checksum "message" }}
 
       - checkout
 
       - run: git gc
       - run: git pull --rebase origin master
       - save_cache:
-          #key: source-v1-{{ .Branch }}-{{ .Revision }}
-          key: source-v1.0.1-{{ .Branch }}
+          key: source-v1.0.0-{{ checksum "message" }}
           paths:
             - ".git"
             # data folders
