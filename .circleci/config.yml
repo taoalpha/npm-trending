@@ -14,14 +14,14 @@ jobs:
     steps:
       - restore_cache:
           keys:
-            - source-v1.0.1-{{ .Branch }}
+            - source-v1.0.2-{{ .Branch }}
 
       - checkout
 
       - run: git gc
       - run: git pull --rebase origin master
       - save_cache:
-          key: source-v1.0.1-{{ .Branch }}
+          key: source-v1.0.2-{{ .Branch }}
           paths:
             - ".git"
 
@@ -61,11 +61,8 @@ jobs:
             - .tmp
           key: v1-tmp-{{ checksum "message" }}
 
-      # rebase before push
-      - run: git pull --rebase origin master
-
       - run: 
-          command: if [[ `git status --porcelain` ]]; then git add -A && git commit -m "$(tail -n 1 message)" && git push origin HEAD:master; fi;
+          command: if [[ `git status --porcelain` ]]; then git add -A && git commit -m "$(tail -n 1 message)" && git pull --rebase origin master && git push origin HEAD:master; fi;
           name: push changes
       - run: 
           command: if [[ $(tail -n 1 message) = *"finished the job for"* ]]; then yarn run compile && yarn run deploy; fi;
