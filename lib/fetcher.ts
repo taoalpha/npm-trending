@@ -383,7 +383,7 @@ export class NpmTrending {
             this._fetched.packages[pkg] === FetchStatus.Done ||
             this._fetched.packages[pkg] === FetchStatus.Over) promise = Promise.resolve({});
         else {
-            promise = rp({ uri: NpmTrending.PACKAGE_STAT_API([pkg], `${DateHelper.add(this.date, -7)}:${DateHelper.add(this.date, -1)}`), json: true })
+            promise = rp({ uri: NpmTrending.PACKAGE_STAT_API([pkg], `${DateHelper.add(this.date, -15)}:${DateHelper.add(this.date, -1)}`), json: true })
                 .then(res => {
                     // mark as fetched
                     this._fetched.packages[pkg] = FetchStatus.Done;
@@ -421,7 +421,7 @@ export class NpmTrending {
 
         else {
             // the request
-            promise = rp({ uri: NpmTrending.PACKAGE_STAT_API(packages, `${DateHelper.add(this.date, -7)}:${DateHelper.add(this.date, -1)}`), json: true })
+            promise = rp({ uri: NpmTrending.PACKAGE_STAT_API(packages, `${DateHelper.add(this.date, -15)}:${DateHelper.add(this.date, -1)}`), json: true })
                 .then(res => {
                     // mark as fetched
                     packages.forEach(pkg => {
@@ -542,15 +542,39 @@ export class NpmTrending {
         ensureFileSync(infoDbFile);
         ensureFileSync(statDbFile);
 
-        writeJsonSync(infoDbFile, infoDb);
         writeJsonSync(statDbFile, statDb);
+
+        // Since github doesn't support files over 100MB, we need to split files here
+        // We use 58297 packages as split threshold as thats the last time we have a successful build
+        let seeds = Object.keys(infoDb);
+        if (seeds.length <= 58000) {
+            writeJsonSync(infoDbFile, infoDb);
+        } else {
+            const chunksData = {"__npm_trending_sub_files__": []};
+            let batch = 0;
+            // we use 52000 as a split to make sure each file not exceed 100M
+            const BATCH_NUMBER =  52000;
+            while ((batch * BATCH_NUMBER) < seeds.length) {
+                const partialDb = {};
+                const lowerBound = batch * BATCH_NUMBER;
+                const upperBound = (batch + 1) * BATCH_NUMBER;
+                for (let i = lowerBound; i < upperBound && i < seeds.length; i++) {
+                    const key = seeds[i];
+                    partialDb[key] = infoDb[key];
+                }
+                const partialDbPath = joinPath(NpmTrending.DATA_DIR, NpmTrending.INFO_DB_PREFIX(this.date) + "-" + batch + ".json");
+                writeJsonSync(partialDbPath, partialDb);
+                chunksData["__npm_trending_sub_files__"].push(NpmTrending.INFO_DB_PREFIX(this.date) + "-" + batch + ".json");
+                batch++;
+            }
+            writeJsonSync(infoDbFile, chunksData);
+        }
 
         // remove _temp
         removeSync(NpmTrending.TEMP_DIR);
 
         // update seed
         // default seed: will be used if no queue, it will be used for next day's initial fetch, the idea is all packages previous fetched should be included at least :)
-        let seeds = Object.keys(infoDb);
         let randomIndices = new Array(seeds.length > 3 ? 3 : seeds.length).fill(null).map(() => Math.floor(Math.random() * seeds.length) + 1);
 
         // update message

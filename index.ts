@@ -2,7 +2,7 @@ import * as Promise from 'bluebird';
 import { NpmTrending } from "./lib/fetcher";
 import { EndEventRest } from "./lib/types";
 import { DateHelper } from "./lib/helpers";
-import { copySync, pathExistsSync, writeJSONSync, ensureFileSync, readdirSync } from "fs-extra";
+import { pathExistsSync } from "fs-extra";
 import { Generator } from "./lib/generator";
 import { join } from "path";
 import * as ghPages from "gh-pages";

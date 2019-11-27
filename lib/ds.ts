@@ -84,8 +84,8 @@ export class Analyze {
         }
 
         this.prevDate = DateHelper.add(date, -1);
-        this.statDb = readJsonSync(join(__dirname, "../data/stat-" + date + ".json"));
-        this.infoDb = readJsonSync(join(__dirname, "../data/info-" + date + ".json"));
+        this.statDb = this.getDb(date, "stat");
+        this.infoDb = this.getDb(date, "info");
         this.keys = Object.keys(this.statDb);
 
         // TODO: handle edge cases (unlikely happen for this project tho)
@@ -94,9 +94,25 @@ export class Analyze {
         }
 
         // to get diff
-        this.prevStatDb = readJsonSync(join(__dirname, "../data/stat-" + this.prevDate + ".json"));
-        this.prevInfoDb = readJsonSync(join(__dirname, "../data/info-" + this.prevDate + ".json"));
+        this.prevStatDb = this.getDb(this.prevDate, "stat");
+        this.prevInfoDb = this.getDb(this.prevDate, "info");
         this.prevKeys = Object.keys(this.prevStatDb);
+    }
+
+    getDb(date, type) {
+        const db = readJsonSync(join(__dirname, `../data/${type}-` + date + ".json"));
+        const subFiles = db["__npm_trending_sub_files__"];
+        if (subFiles && subFiles.length) {
+            let res = {};
+            for (let subDbFile of subFiles) {
+                const subDb = readJsonSync(join(__dirname, `../data/${subDbFile}`));
+                // merge into res
+                Object.assign(res, subDb);
+            }
+            return res;
+        } else {
+            return db;
+        }
     }
 
     // get new packages fetched compared to previous day
