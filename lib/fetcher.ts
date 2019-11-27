@@ -55,7 +55,7 @@ export class NpmTrending {
         [key: string]: Listener[]
     } = {};
 
-    constructor(private date: string = DateHelper.today) {
+    constructor(private date: string = DateHelper.today, private range: number = 7) {
     }
 
     // path to store fetched data from previous runs
@@ -383,7 +383,7 @@ export class NpmTrending {
             this._fetched.packages[pkg] === FetchStatus.Done ||
             this._fetched.packages[pkg] === FetchStatus.Over) promise = Promise.resolve({});
         else {
-            promise = rp({ uri: NpmTrending.PACKAGE_STAT_API([pkg], `${DateHelper.add(this.date, -15)}:${DateHelper.add(this.date, -1)}`), json: true })
+            promise = rp({ uri: NpmTrending.PACKAGE_STAT_API([pkg], `${DateHelper.add(this.date, -this.range)}:${DateHelper.add(this.date, -1)}`), json: true })
                 .then(res => {
                     // mark as fetched
                     this._fetched.packages[pkg] = FetchStatus.Done;
@@ -421,7 +421,7 @@ export class NpmTrending {
 
         else {
             // the request
-            promise = rp({ uri: NpmTrending.PACKAGE_STAT_API(packages, `${DateHelper.add(this.date, -15)}:${DateHelper.add(this.date, -1)}`), json: true })
+            promise = rp({ uri: NpmTrending.PACKAGE_STAT_API(packages, `${DateHelper.add(this.date, -this.range)}:${DateHelper.add(this.date, -1)}`), json: true })
                 .then(res => {
                     // mark as fetched
                     packages.forEach(pkg => {
