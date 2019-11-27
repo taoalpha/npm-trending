@@ -81,7 +81,7 @@ export class NpmTrending {
     static DATA_DIR = "data";
 
     // configs
-    static TIME_OUT = 10 * 60 * 1000; // (10m)
+    static TIME_OUT = 8 * 60 * 1000; // (8m)
     static MAX_FETCH_ERRORS = 50;
     static SUSPEND_404_BASE_TIME = 7 * 24 * 60 * 60 * 1000; // 7days
 

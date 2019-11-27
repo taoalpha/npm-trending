@@ -53,7 +53,7 @@ jobs:
       # run fetch
       - run:
           command: yarn run fetch
-          no_output_timeout: 6m
+          no_output_timeout: 8m
 
       # store cache on .tmp
       - save_cache:
@@ -67,6 +67,8 @@ jobs:
       - run: 
           command: if [[ $(tail -n 1 message) = *"finished the job for"* ]]; then yarn run compile && yarn run deploy; fi;
           name: deploy
+
+      # TODO: move data to data-archive branch
 
 workflows:
   version: 2
