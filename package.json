@@ -22,7 +22,7 @@
   "devDependencies": {
     "@types/bluebird": "^3.5.24",
     "@types/fs-extra": "^8.0.1",
-    "@types/node": "^12.7.0",
+    "@types/node": "^13.1.0",
     "@types/request-promise": "^4.1.42",
     "gh-pages": "2.0",
     "handlebars": "^4.0.5",
