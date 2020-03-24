@@ -98,7 +98,7 @@ const npmJob = (date: string = DateHelper.today) : Promise<any> => {
             // do a deployment if report is not exists
             if (needDeployment) ghPages.publish(join(__dirname, "dist"), {
                     add: true,  // only add
-                    message: `daily report for ${DateHelper.add(date, -1)}!`
+                    message: `daily report for ${DateHelper.add(date, -1)}! [ci skip]`
                 }, (error) => {
                     if (error) reject(error);
                     else resolve({fetched: !generator.noData});
