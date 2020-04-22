@@ -552,8 +552,8 @@ export class NpmTrending {
         } else {
             const chunksData = {"__npm_trending_sub_files__": []};
             let batch = 0;
-            // we use 52000 as a split to make sure each file not exceed 100M
-            const BATCH_NUMBER =  52000;
+            // we use 50000 as a split to make sure each file not exceed 100M
+            const BATCH_NUMBER =  50000;
             while ((batch * BATCH_NUMBER) < seeds.length) {
                 const partialDb = {};
                 const lowerBound = batch * BATCH_NUMBER;
