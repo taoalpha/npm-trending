@@ -1,0 +1,91 @@
+# Javascript Node CircleCI 2.0 configuration file
+#
+# Check https://circleci.com/docs/2.0/language-javascript/ for more details
+#
+version: 2.0
+jobs:
+  build:
+    docker:
+      # specify the version you desire here
+      - image: circleci/node:latest
+
+    working_directory: ~/repo
+
+    steps:
+      - restore_cache:
+          keys:
+            - source-v2.0.0-{{ .Branch }}
+
+      - checkout
+
+      - run: git gc
+      - run: git pull --rebase origin master
+      - save_cache:
+          key: source-v2.0.0-{{ .Branch }}
+          paths:
+            - ".git"
+
+      - add_ssh_keys:
+          fingerprints:
+          - "1b:f0:c8:36:a9:5f:4a:bf:6f:84:dc:18:aa:8c:33:e5"
+
+      # Download and cache dependencies
+      - restore_cache:
+          keys:
+          - v1-dependencies-{{ checksum "package.json" }}
+
+      # restore temp from previous stored
+      - restore_cache:
+          keys:
+          - v1-tmp-{{ checksum "message" }}
+
+      - run: yarn install
+
+      - save_cache:
+          paths:
+            - node_modules
+          key: v1-dependencies-{{ checksum "package.json" }}
+
+      # set committer
+      - run: git config --global user.email "CircleCI@CircleCI.com"
+      - run: git config --global user.name "CircleCI"
+
+      # run fetch
+      - run:
+          command: yarn run fetch
+          no_output_timeout: 8m
+
+      # store cache on .tmp
+      - save_cache:
+          paths:
+            - .tmp
+          key: v1-tmp-{{ checksum "message" }}
+
+      - run: 
+          command: if [[ `git status --porcelain` ]]; then git add -A && git commit -m "$(tail -n 1 message)" && git pull --rebase origin master && git push origin HEAD:master; fi;
+          name: push changes
+      - run: 
+          command: if [[ $(tail -n 1 message) = *"finished the job for"* ]]; then yarn run compile && yarn run deploy; fi;
+          name: deploy
+
+      # TODO: move data to data-archive branch
+
+workflows:
+  version: 2
+  commit:
+    jobs:
+      - build:
+          filters:
+            branches:
+              only:
+                - master
+  build-deploy:
+    triggers:
+      - schedule:
+          cron: "0 3 * * *"
+          filters:
+            branches:
+              only:
+                - master
+    jobs:
+      - build

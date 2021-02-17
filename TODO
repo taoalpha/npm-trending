@@ -1,0 +1,30 @@
+I will keep NPM trending as a serverless site, so some features require visitors' data and data persistent won't be added.
+
+
+#### Pending
+- retry logic if too many errors (currently it will just stop)
+- clean code
+- num of packages created distributed by months
+- responsive
+
+#### Done
+- [x] get top developers
+- [x] special icon for new package join the top
+- [x] when retry previous date, re-generate on the date after that :)
+- [x] automatically retry on previous empty dates (i.e: if api is not ready for that day before)
+- [x] rewrite to use subscribe / listener pattern, include the generator in the main flow
+- [x] add a mini graph to every package to show history trends, similar to what NPM has now (for a week)
+- [x] use data we collected (put history downloads, ~5 days to stat json)
+- [x] add `dep` to info-x.json when fetch for info
+- [x] generate some diff reports on: new packages added, packages updated last day, etc
+- [x] duplicated packages should be collapsed by default(or maybe link to where it is always)
+- [x] clean up the main.ts code
+- [x] new packages fetched (link on the `total: xxxx` part) (dup with 4)
+- [x] move css / js to ts + scss and add pre-processor
+- [x] add a version chart :)
+- [x] record 404 packages and reduce the fetching frequency for those
+- [x] add # of dependents for each package (the number will be derived based on what we have fetched, so it won't be very accurate)
+- [x] add `packages depend on this package`, refer to `https://www.npmjs.com/browse/depended/${pkg}` page
+- [x] still a miss between `total` and statDb.length, why ? => due to added packages pushed into queue again :(, moved queue to a set to remove duplicates
+- [x] consider dependencies too when calculate trends, or as a separate column
+- [x] add random packages to seed to increase # packages we can fetch

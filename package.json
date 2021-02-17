@@ -1,0 +1,33 @@
+{
+  "name": "npm-trending",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "fetch": "ts-node index.ts",
+    "compile": "mkdir -p dist && cp -rf template/* dist/ && sass dist/lib/main.scss dist/lib/main.css && tsc --out dist/lib/main.js dist/lib/main.ts --lib 'dom, es2017' --skipLibCheck --target ES5 --module amd",
+    "serve": "http-server ./dist",
+    "deploy": "ls -l dist && gh-pages -d dist -a -t -m 'daily update'"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bluebird": "3.7.2",
+    "fs-extra": "^7.0.0",
+    "http-server": "^0.12.0",
+    "lodash-decorators": "^6.0.0",
+    "request": "^2.88.0",
+    "request-promise": "^4.2.2"
+  },
+  "devDependencies": {
+    "@types/bluebird": "^3.5.24",
+    "@types/fs-extra": "^8.0.1",
+    "@types/node": "^12.7.0",
+    "@types/request-promise": "^4.1.42",
+    "gh-pages": "2.0",
+    "handlebars": "^4.0.5",
+    "sass": "^1.14.1",
+    "ts-node": "^8.4.0",
+    "typescript": "^3.0.3"
+  }
+}
