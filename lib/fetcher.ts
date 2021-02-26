@@ -179,7 +179,7 @@ export class NpmTrending {
         this._queue = this._unique((readFileSync(NpmTrending.SEED_FILE, 'utf8')).split(",").map(v => v.trim()).filter(v => this._shouldFetch(v)));
 
         console.log(`Currently queue length: ${this._queue.length}, current fetched: ${this._fetched.total}, recorded 404s: ${Object.keys(this._notFound).length}`);
-
+        console.log(`Sanity check: https://api.npmjs.org/downloads/point/${DateHelper.add(this.date, -1)}`);
         // sanity check
         rp({ uri: "https://api.npmjs.org/downloads/point/" + DateHelper.add(this.date, -1), json: true })
             .then(res => {
