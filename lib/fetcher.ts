@@ -183,6 +183,7 @@ export class NpmTrending {
         // sanity check
         rp({ uri: "https://api.npmjs.org/downloads/point/" + DateHelper.add(this.date, -1), json: true })
             .then(res => {
+                console.log("Sanity result: ", res);
                 // data has not filled in
                 if (res.downloads === 0) {
                     this.emit("end", {msg: "No stats in the API!", finish: true} as EndEventRest)
