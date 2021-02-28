@@ -82,7 +82,7 @@ workflows:
   build-deploy:
     triggers:
       - schedule:
-          cron: "0 3 * * *"
+          cron: "0 9 * * *"
           filters:
             branches:
               only:

@@ -96,7 +96,6 @@ async function run() {
         if (generator.noData) {
             return;
         }
-        let needDeployment = !pathExistsSync(join(Generator.REPORT_DIR, "pkg-" + DateHelper.today + ".json"));
 
         const metaInfo = readJsonSync(join(__dirname, "data/meta.json"));
 
@@ -129,20 +128,7 @@ async function run() {
             if (name.startsWith(`info-${prevDate}`)) continue;
             await fsp.unlink(join(__dirname, "./data", name));
         }
-
-        // do a deployment if report is not exists
-        if (needDeployment) {
-            console.log("deploying to gh-pages");
-            ghPages.publish(join(__dirname, "dist"), {
-                add: true,  // only add
-                message: `Generating/updating reports on ${DateHelper.today}! [ci skip]`
-            }, (error) => {
-                console.log("error:", error);
-            });
-        }
-
     } catch {}
 }
-
 
 run()
