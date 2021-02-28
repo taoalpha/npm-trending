@@ -7,7 +7,7 @@
     "fetch": "ts-node index.ts",
     "compile": "mkdir -p dist && cp -rf template/* dist/ && sass dist/lib/main.scss dist/lib/main.css && tsc --out dist/lib/main.js dist/lib/main.ts --lib 'dom, es2017' --skipLibCheck --target ES5 --module amd",
     "serve": "http-server ./dist",
-    "deploy": "ls -l dist && gh-pages -d dist -a -t -m 'daily update'"
+    "deploy": "ls -l dist && gh-pages -d dist -a -t -m 'daily update [ci skip]'"
   },
   "author": "",
   "license": "ISC",
