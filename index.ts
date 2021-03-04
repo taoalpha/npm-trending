@@ -102,12 +102,12 @@ async function run() {
         // Regenerate all data with this fetch for past two weeks
         let i = 1;
         let startDate = metaInfo.last_generated_date;
-        while (new Date(DateHelper.add(startDate, i)) <= new Date(DateHelper.today)) {
+        while (new Date(DateHelper.add(startDate, i)) <= new Date(DateHelper.add(DateHelper.today, -1))) {
             console.log("Generating for: ", DateHelper.add(startDate, i));
             generator.generate(DateHelper.add(startDate, i));
             i++;
         }
-        metaInfo.last_generated_date = DateHelper.today;
+        metaInfo.last_generated_date = DateHelper.add(DateHelper.today, -1);
         writeJsonSync(join(__dirname, "data/meta.json"), metaInfo);
 
         console.log("Removing old files...");
